@@ -1,0 +1,1 @@
+export { GatewayWalletPanel } from './GatewayWalletPanel';
