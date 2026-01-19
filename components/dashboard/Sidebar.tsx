@@ -9,17 +9,35 @@ import {
     Layers, ChevronDown, ChevronRight, Store, Building2, BarChart3,
     Users, FileText, Shield, ArrowUpDown, CandlestickChart, DollarSign,
     Settings2, FileCode, Archive, Plug, Percent, Container, Key,
-    TrendingUp, Target, History, ChevronLeft, Menu
+    TrendingUp, Target, History, ChevronLeft, Menu, Brain
 } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { useStore } from "@/store/useStore";
 import { useAuth } from "@/hooks/useAuth";
 
-// SIMPLIFIED NAVIGATION FOR END USERS (TRADER role)
-const endUserNavigation = [
+type NavItem = {
+    name: string;
+    href: string;
+    icon: any;
+    children?: { name: string; href: string }[];
+    minRole?: "ADMIN" | "SUPER_ADMIN";
+};
+
+// READ-ONLY NAVIGATION FOR VIEWERS
+const viewerNavigation: NavItem[] = [
     { name: "Dashboard", href: "/user/dashboard", icon: LayoutDashboard },
-    { name: "Profit", href: "/user/profit", icon: TrendingUp },
-    { name: "Opportunities", href: "/user/opportunities", icon: Target },
+    { name: "Portfolio", href: "/portfolio", icon: Wallet },
+    { name: "Performance", href: "/performance", icon: BarChart3 },
+    { name: "Market Overview", href: "/charts", icon: CandlestickChart },
+];
+
+// SIMPLIFIED NAVIGATION FOR END USERS (TRADER role)
+const endUserNavigation: NavItem[] = [
+    { name: "Dashboard", href: "/user/dashboard", icon: LayoutDashboard },
+    { name: "Bots", href: "/orchestration", icon: Terminal },
+    { name: "Nexora", href: "/nexora", icon: Brain },
+    { name: "Portfolio", href: "/portfolio", icon: Wallet },
+    { name: "Performance", href: "/performance", icon: BarChart3 },
     { name: "Connect Exchange", href: "/connectors", icon: Plug },
     {
         name: "History",
@@ -33,9 +51,10 @@ const endUserNavigation = [
 ];
 
 // FULL NAVIGATION FOR ADMINS (existing structure)
-const mainNavigation = [
+const mainNavigation: NavItem[] = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
     { name: "Bots", href: "/orchestration", icon: Terminal },
+    { name: "Nexora", href: "/nexora", icon: Brain },
 
     { name: "Orders", href: "/orders", icon: ClipboardList },
     { name: "Positions", href: "/positions", icon: DollarSign },
@@ -45,7 +64,7 @@ const mainNavigation = [
 ];
 
 // Strategy & Tools links
-const toolsNavigation = [
+const toolsNavigation: NavItem[] = [
     { name: "Manual Trade", href: "/trading/manual", icon: ArrowUpDown },
     { name: "Charts", href: "/charts", icon: CandlestickChart },
     { name: "Strategies", href: "/strategies", icon: Layers },
@@ -61,11 +80,11 @@ const toolsNavigation = [
 ];
 
 // Admin panel links - role restricted
-const adminPanelNavigation = [
-    { name: "Admin Dashboard", href: "/admin", icon: Shield, minRole: 'ADMIN' as const },
-    { name: "Users", href: "/admin/users", icon: Users, minRole: 'ADMIN' as const },
-    { name: "Organizations", href: "/admin/organizations", icon: Building2, minRole: 'SUPER_ADMIN' as const },
-    { name: "Audit Logs", href: "/admin/audit-logs", icon: FileText, minRole: 'ADMIN' as const },
+const adminPanelNavigation: NavItem[] = [
+    { name: "Admin Dashboard", href: "/admin", icon: Shield, minRole: 'ADMIN' },
+    { name: "Users", href: "/admin/users", icon: Users, minRole: 'ADMIN' },
+    { name: "Organizations", href: "/admin/organizations", icon: Building2, minRole: 'SUPER_ADMIN' },
+    { name: "Audit Logs", href: "/admin/audit-logs", icon: FileText, minRole: 'ADMIN' },
 ];
 
 export function Sidebar() {
@@ -78,7 +97,7 @@ export function Sidebar() {
         mobileSidebarOpen,
         toggleMobileSidebar
     } = useStore();
-    const { isAdmin, isSuperAdmin, isTrader, hasRole } = useAuth();
+    const { role, user: authUser, isAdmin, isSuperAdmin, isTrader, hasRole } = useAuth();
     const [adminExpanded, setAdminExpanded] = useState(false);
     const [adminPanelExpanded, setAdminPanelExpanded] = useState(false);
     const [historyExpanded, setHistoryExpanded] = useState(false);
@@ -89,7 +108,15 @@ export function Sidebar() {
     const isOnHistoryPage = pathname?.startsWith('/user/history');
 
     // Determine which navigation to show based on role
-    const showSimplifiedNav = isTrader && !isAdmin;
+    const isOnlyViewer = role === 'VIEWER';
+    const isOnlyTrader = role === 'TRADER';
+
+    let displayNavigation = mainNavigation;
+    if (isOnlyViewer) {
+        displayNavigation = viewerNavigation;
+    } else if (isOnlyTrader) {
+        displayNavigation = endUserNavigation;
+    }
 
     return (
         <>
@@ -154,10 +181,10 @@ export function Sidebar() {
                 </div>
 
                 <nav className="flex-1 overflow-y-auto px-2 py-4 custom-scrollbar">
-                    {/* SIMPLIFIED NAVIGATION FOR END USERS (TRADER) */}
-                    {showSimplifiedNav ? (
+                    {/* ROLE-BASED NAVIGATION */}
+                    {(isOnlyViewer || isOnlyTrader) ? (
                         <div className="space-y-1">
-                            {endUserNavigation.map((item) => {
+                            {displayNavigation.map((item) => {
                                 if (item.children) {
                                     // History dropdown
                                     const isActive = pathname?.startsWith(item.href);
@@ -394,55 +421,77 @@ export function Sidebar() {
                 </nav>
 
                 <div className={cn("border-t border-slate-800 p-4 space-y-4", sidebarCollapsed && "px-2")}>
-                    {/* Admin-only items - hide for end users */}
-                    {!showSimplifiedNav && (
+                    {/* User Profile & Role Badge */}
+                    {!sidebarCollapsed && authUser && (
+                        <div className="flex items-center gap-3 px-2 py-2 mb-2 bg-slate-800/30 rounded-lg border border-white/5">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-xs font-bold shadow-lg">
+                                {authUser.name?.[0] || 'U'}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-white truncate">{authUser.name}</p>
+                                <span className={cn(
+                                    "text-[10px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded",
+                                    isAdmin ? "bg-purple-500/20 text-purple-400 border border-purple-500/30" :
+                                        isTrader ? "bg-blue-500/20 text-blue-400 border border-blue-500/30" :
+                                            "bg-slate-500/20 text-slate-400 border border-slate-500/30"
+                                )}>
+                                    {role}
+                                </span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Admin/Trader items - hide for view-only users */}
+                    {(isAdmin || isTrader) && (
                         <>
-                            {/* Trading Mode Toggle */}
-                            <div
-                                className={cn(
-                                    "rounded-lg p-3 border transition-all cursor-pointer",
-                                    appMode === 'paper'
-                                        ? "bg-amber-500/10 border-amber-500/30 hover:border-amber-500/50"
-                                        : "bg-green-500/10 border-green-500/30 hover:border-green-500/50"
-                                )}
-                                onClick={toggleAppMode}
-                            >
-                                <div className={cn("flex items-center justify-between", sidebarCollapsed && "justify-center")}>
-                                    <div className="flex items-center gap-2">
-                                        {appMode === 'paper' ? (
-                                            <FlaskConical className="w-4 h-4 text-amber-400" />
-                                        ) : (
-                                            <Activity className="w-4 h-4 text-green-400" />
-                                        )}
+                            {/* Trading Mode Toggle - Admin Only for safety */}
+                            {isAdmin && (
+                                <div
+                                    className={cn(
+                                        "rounded-lg p-3 border transition-all cursor-pointer",
+                                        appMode === 'paper'
+                                            ? "bg-amber-500/10 border-amber-500/30 hover:border-amber-500/50"
+                                            : "bg-green-500/10 border-green-500/30 hover:border-green-500/50"
+                                    )}
+                                    onClick={toggleAppMode}
+                                >
+                                    <div className={cn("flex items-center justify-between", sidebarCollapsed && "justify-center")}>
+                                        <div className="flex items-center gap-2">
+                                            {appMode === 'paper' ? (
+                                                <FlaskConical className="w-4 h-4 text-amber-400" />
+                                            ) : (
+                                                <Activity className="w-4 h-4 text-green-400" />
+                                            )}
+                                            {!sidebarCollapsed && (
+                                                <span className={cn(
+                                                    "text-xs font-bold",
+                                                    appMode === 'paper' ? "text-amber-400" : "text-green-400"
+                                                )}>
+                                                    {appMode === 'paper' ? 'PAPER' : 'LIVE'}
+                                                </span>
+                                            )}
+                                        </div>
                                         {!sidebarCollapsed && (
-                                            <span className={cn(
-                                                "text-xs font-bold",
-                                                appMode === 'paper' ? "text-amber-400" : "text-green-400"
+                                            <div className={cn(
+                                                "relative w-8 h-4 rounded-full transition-colors",
+                                                appMode === 'paper' ? "bg-amber-500/30" : "bg-green-500/30"
                                             )}>
-                                                {appMode === 'paper' ? 'PAPER' : 'LIVE'}
-                                            </span>
+                                                <div className={cn(
+                                                    "absolute top-0.5 h-3 w-3 rounded-full shadow-lg transition-all duration-200",
+                                                    appMode === 'paper'
+                                                        ? "left-0.5 bg-amber-500"
+                                                        : "left-4.5 bg-green-500"
+                                                )}></div>
+                                            </div>
                                         )}
                                     </div>
                                     {!sidebarCollapsed && (
-                                        <div className={cn(
-                                            "relative w-8 h-4 rounded-full transition-colors",
-                                            appMode === 'paper' ? "bg-amber-500/30" : "bg-green-500/30"
-                                        )}>
-                                            <div className={cn(
-                                                "absolute top-0.5 h-3 w-3 rounded-full shadow-lg transition-all duration-200",
-                                                appMode === 'paper'
-                                                    ? "left-0.5 bg-amber-500"
-                                                    : "left-4.5 bg-green-500"
-                                            )}></div>
-                                        </div>
+                                        <p className="text-[10px] text-slate-500 mt-1">
+                                            {appMode === 'paper' ? 'No real money at risk' : '⚠️ Real funds active'}
+                                        </p>
                                     )}
                                 </div>
-                                {!sidebarCollapsed && (
-                                    <p className="text-[10px] text-slate-500 mt-1">
-                                        {appMode === 'paper' ? 'No real money at risk' : '⚠️ Real funds active'}
-                                    </p>
-                                )}
-                            </div>
+                            )}
 
                             {/* Settings Link */}
                             <Link

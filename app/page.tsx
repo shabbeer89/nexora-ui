@@ -13,9 +13,13 @@ export default function Home() {
   const router = useRouter();
   const { isTrader, isAdmin } = useAuth();
 
-  // Redirect TRADER users to their dashboard
+  // Redirect users to appropriate dashboard
   useEffect(() => {
-    if (isTrader && !isAdmin) {
+    if (isAdmin) {
+      // Admin users go to Nexora Mission Control
+      router.replace('/nexora');
+    } else if (isTrader) {
+      // Trader users go to their dashboard
       router.replace('/user/dashboard');
     }
   }, [isTrader, isAdmin, router]);

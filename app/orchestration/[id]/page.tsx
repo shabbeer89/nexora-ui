@@ -14,6 +14,8 @@ import { backendApi } from "@/lib/backend-api";
 import { DataTableFilters, TimeRange } from "@/components/ui/DataTableFilters";
 import { Pagination } from "@/components/ui/Pagination";
 import { cn } from "@/lib/utils";
+import StreamingTerminal from "@/components/dashboard/StreamingTerminal";
+import DynamicConfigEditor from "@/components/dashboard/DynamicConfigEditor";
 
 // Types
 interface BotStatus {
@@ -479,10 +481,29 @@ export default function BotDetailsPage() {
                     <TradesTab botId={params.id as string} />
                 )}
                 {activeTab === 'logs' && (
-                    <LogsTab logs={allLogs} recentlyActive={botStatus?.recently_active} />
+                    <StreamingTerminal
+                        botId={params.id as string}
+                        initialLogs={allLogs}
+                        recentlyActive={botStatus?.recently_active}
+                    />
                 )}
                 {activeTab === 'about' && (
-                    <AboutTab botStatus={botStatus} />
+                    <div className="space-y-8">
+                        {/* Deployment Details Overview */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <StatRow label="Strategy" value={botStatus?.strategy || 'PMM'} />
+                            <StatRow label="Exchange" value={botStatus?.exchange || 'Paper'} />
+                            <StatRow label="Deployed" value={botStatus?.botRun?.deployedAt ? new Date(botStatus.botRun.deployedAt).toLocaleDateString() : 'N/A'} />
+                            <StatRow label="Runtime" value={formatRuntime()} />
+                        </div>
+
+                        <DynamicConfigEditor
+                            botId={params.id as string}
+                            initialConfig={botStatus?.config || {}}
+                            onUpdate={fetchBotStatus}
+                            isRunning={isRunning}
+                        />
+                    </div>
                 )}
             </div>
         </div>

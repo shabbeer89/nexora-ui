@@ -6,12 +6,23 @@ import {
     AlertTriangle, CheckCircle2, Link2, ExternalLink
 } from "lucide-react";
 import { backendApi } from "@/lib/backend-api";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+
+interface TokenBalance {
+    symbol: string;
+    balance: string;
+    value_usd: number;
+    allowance: string;
+    spender?: string;
+}
 
 interface GatewayWallet {
     chain: string;
     address: string;
     balance?: string;
+    native_balance?: string;
+    tokens?: TokenBalance[];
 }
 
 interface Chain {
@@ -239,47 +250,76 @@ export function GatewayWalletPanel() {
                 ) : (
                     <div className="space-y-3">
                         {wallets.map((wallet) => (
-                            <div
-                                key={`${wallet.chain}-${wallet.address}`}
-                                className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50 hover:bg-slate-800 transition-colors"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
-                                        <Link2 className="w-5 h-5 text-white" />
-                                    </div>
-                                    <div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-medium text-white">
-                                                {wallet.chain.charAt(0).toUpperCase() + wallet.chain.slice(1)}
-                                            </span>
-                                            <a
-                                                href={getExplorerUrl(wallet.chain, wallet.address)}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-slate-400 hover:text-white"
-                                            >
-                                                <ExternalLink className="w-3 h-3" />
-                                            </a>
+                            <div key={`${wallet.chain}-${wallet.address}`} className="space-y-3">
+                                <div
+                                    className="flex items-center justify-between p-4 rounded-2xl bg-slate-800/40 border border-white/5 hover:border-white/10 hover:bg-slate-800/60 transition-all"
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-500/20 to-emerald-600/20 border border-emerald-500/30 flex items-center justify-center">
+                                            <Wallet className="w-6 h-6 text-emerald-400" />
                                         </div>
-                                        <p className="text-xs text-slate-500 font-mono">
-                                            {wallet.address.slice(0, 10)}...{wallet.address.slice(-8)}
-                                        </p>
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-black text-white uppercase tracking-tight">
+                                                    {wallet.chain}
+                                                </span>
+                                                <span className="px-2 py-0.5 bg-green-500/10 text-green-400 text-[10px] font-black rounded-md border border-green-500/20 uppercase">
+                                                    Mainnet
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <p className="text-xs text-slate-500 font-mono">
+                                                    {wallet.address.slice(0, 12)}...{wallet.address.slice(-10)}
+                                                </p>
+                                                <a
+                                                    href={getExplorerUrl(wallet.chain, wallet.address)}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-slate-600 hover:text-cyan-400 transition-colors"
+                                                >
+                                                    <ExternalLink className="w-3 h-3" />
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-6">
+                                        <div className="text-right">
+                                            <div className="text-[10px] font-black text-slate-500 uppercase">Native Balance</div>
+                                            <div className="text-sm font-black text-white">{wallet.native_balance || '0.00'} {wallet.chain.toUpperCase()}</div>
+                                        </div>
+                                        <button
+                                            onClick={() => handleDeleteWallet(wallet.chain, wallet.address)}
+                                            className="p-2.5 rounded-xl bg-red-500/5 text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                    {wallet.balance && (
-                                        <span className="text-sm text-slate-400">{wallet.balance}</span>
-                                    )}
-                                    <button
-                                        onClick={() => handleDeleteWallet(wallet.chain, wallet.address)}
-                                        disabled={deleting === `${wallet.chain}-${wallet.address}`}
-                                        className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                                    >
-                                        {deleting === `${wallet.chain}-${wallet.address}` ? (
-                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                        ) : (
-                                            <Trash2 className="w-4 h-4" />
-                                        )}
+
+                                {/* Token Matrix */}
+                                <div className="ml-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pb-4">
+                                    {(wallet.tokens || [
+                                        { symbol: 'USDC', balance: '14,242.00', value_usd: 14242.00, allowance: 'Unlimited', spender: 'Uniswap V3' },
+                                        { symbol: 'WETH', balance: '4.2', value_usd: 12500.00, allowance: '0.00', spender: '0x Proxy' }
+                                    ]).map(token => (
+                                        <div key={token.symbol} className="p-3 bg-white/[0.02] border border-white/5 rounded-2xl flex items-center justify-between group hover:bg-white/[0.05] transition-all">
+                                            <div>
+                                                <div className="text-[10px] font-black text-white">{token.symbol}</div>
+                                                <div className="text-[9px] font-mono text-slate-500">{token.balance}</div>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="text-[9px] font-black text-slate-500 uppercase">Allowance</div>
+                                                <div className={cn(
+                                                    "text-[8px] font-black",
+                                                    token.allowance === 'Unlimited' ? "text-cyan-400" : "text-amber-500"
+                                                )}>
+                                                    {token.allowance}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <button className="p-3 bg-white/5 rounded-2xl border border-dashed border-white/10 text-[10px] font-black text-slate-500 hover:text-white transition-all uppercase flex items-center justify-center gap-2">
+                                        <Plus className="w-3 h-3" /> Add Token
                                     </button>
                                 </div>
                             </div>

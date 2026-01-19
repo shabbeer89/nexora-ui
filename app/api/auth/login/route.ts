@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 
-const API_URL = process.env.HUMMINGBOT_API_URL || 'http://localhost:8000';
+const API_URL = process.env.NEXORA_API_URL || 'http://localhost:8888';
 
 export async function POST(request: Request) {
     try {
@@ -12,16 +12,16 @@ export async function POST(request: Request) {
 
         console.log('[Login] Forwarding to backend API:', API_URL);
 
-        // Forward to backend API for real JWT token
+        // Forward to Nexora Bot API for real JWT token
         const response = await axios.post(
             `${API_URL}/auth/login`,
-            new URLSearchParams({
+            {
                 username,
                 password
-            }).toString(),
+            },
             {
                 headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
+                    'Content-Type': 'application/json'
                 }
             }
         );

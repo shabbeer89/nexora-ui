@@ -1,134 +1,223 @@
 /**
- * Nexora API Client for Next.js UI
- * ================================
+ * Nexora API Client
+ * =================
  * 
- * TypeScript/JavaScript client for connecting Next.js UI to Nexora Bot API.
+ * TypeScript client wrapper for the Nexora Bot API.
+ * Handles authentication, request/response formatting, and error handling.
  */
-
-
-// lib/nexora-api.ts
 
 const NEXORA_API_URL = process.env.NEXT_PUBLIC_NEXORA_API_URL || 'http://localhost:8888';
 
-export interface RegimeData {
-  regime: string;
-  strength: number;
-  timestamp: string;
-  description: string;
+// Types
+export interface Token {
+    access_token: string;
+    token_type: string;
 }
 
-export interface PortfolioData {
-  total_value_usd: number;
-  cex: {
-    total_usd: number;
-    details: any;
-  };
-  dex: {
-    total_usd: number;
-    details: any;
-  };
-  timestamp: string;
+export interface User {
+    username: string;
+    email?: string;
+    full_name?: string;
+    disabled?: boolean;
+    scopes: string[];
 }
 
-export interface RiskData {
-  global_exposure_pct: number;
-  max_exposure_pct: number;
-  current_drawdown_pct: number;
-  max_drawdown_pct: number;
-  kill_switch_active: boolean;
-  position_limits: {
-    max_position_usd: number;
-    current_largest_position_usd: number;
-  };
+export interface Regime {
+    regime: string;
+    strength: number;
+    timestamp: string;
+    description: string;
+    source: string;
 }
 
-export interface StrategyData {
-  cex: {
+export interface RegimeHistory {
+    history: Array<{
+        regime: string;
+        timestamp: string;
+        duration_minutes?: number;
+        strength?: number;
+        metadata?: any;
+    }>;
+    source: string;
+}
+
+export interface Portfolio {
+    total_value_usd: number;
+    cex: {
+        total_usd: number;
+        details: any;
+    };
+    dex: {
+        total_usd: number;
+        details: any;
+    };
+    orchestrator?: {
+        best_bid: number;
+        best_ask: number;
+        spread: number;
+        venues: string[];
+    };
+    timestamp: string;
+}
+
+export interface Position {
+    symbol: string;
+    size: number;
+    entry_price: number;
+    current_price: number;
+    pnl_usd: number;
+    pnl_pct: number;
+}
+
+export interface Positions {
+    cex_positions: Position[];
+    dex_positions: Position[];
+    total_positions: number;
+}
+
+export interface StrategyPerformance {
     strategy: string;
     status: string;
-    performance: any;
-  };
-  dex: {
-    strategy: string;
-    status: string;
-    performance: any;
-  };
+    performance: {
+        profit_usd: number;
+        win_rate: number;
+        total_trades?: number;
+        sharpe_ratio?: number;
+    };
 }
 
+export interface Strategies {
+    cex: StrategyPerformance;
+    dex: StrategyPerformance;
+}
+
+export interface RiskStatus {
+    global_exposure_pct: number;
+    max_exposure_pct: number;
+    current_drawdown_pct: number;
+    max_drawdown_pct: number;
+    kill_switch_active: boolean;
+    position_limits: {
+        max_position_usd: number;
+        current_largest_position_usd: number;
+    };
+    source: string;
+}
+
+export interface RiskAlert {
+    level: string;
+    message: string;
+    timestamp: string;
+}
+
+// Import the shared token getter from backend-api
+import { getAccessToken } from './backend-api';
+
+// API Client Class
 class NexoraAPIClient {
-  private baseURL: string;
+    private baseURL: string;
 
-  constructor(baseURL: string = NEXORA_API_URL) {
-    this.baseURL = baseURL;
-  }
-
-  private async fetch<T>(endpoint: string, options?: RequestInit): Promise<T> {
-    const response = await fetch(`${this.baseURL}${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options?.headers,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.statusText}`);
+    constructor(baseURL: string = NEXORA_API_URL) {
+        this.baseURL = baseURL;
     }
 
-    return response.json();
-  }
+    // Use shared authentication - no separate login needed
+    // The main app handles authentication via backend-api
+    async getCurrentUser(): Promise<User> {
+        return this.get<User>('/auth/me');
+    }
 
-  // Health & Status
-  async getHealth() {
-    return this.fetch('/health');
-  }
+    // Generic request methods
+    private async request<T>(
+        endpoint: string,
+        options: RequestInit = {}
+    ): Promise<T> {
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+            ...(options.headers as Record<string, string> || {}),
+        };
 
-  async getStatus() {
-    return this.fetch('/status');
-  }
+        // Add authentication using shared token system
+        const token = getAccessToken();
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
 
-  // Regime
-  async getRegime(): Promise<RegimeData> {
-    return this.fetch<RegimeData>('/regime');
-  }
+        const response = await fetch(`${this.baseURL}${endpoint}`, {
+            ...options,
+            headers,
+        });
 
-  async getRegimeHistory(limit: number = 100) {
-    return this.fetch(`/regime/history?limit=${limit}`);
-  }
+        if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+                // Token expired or insufficient permissions
+                throw new Error(`Authentication Error: ${response.statusText}`);
+            }
+            throw new Error(`API Error: ${response.statusText}`);
+        }
 
-  // Portfolio
-  async getPortfolio(): Promise<PortfolioData> {
-    return this.fetch<PortfolioData>('/portfolio');
-  }
+        return response.json();
+    }
 
-  async getPositions() {
-    return this.fetch('/portfolio/positions');
-  }
+    private async get<T>(endpoint: string): Promise<T> {
+        return this.request<T>(endpoint, { method: 'GET' });
+    }
 
-  // Strategies
-  async getStrategies(): Promise<StrategyData> {
-    return this.fetch<StrategyData>('/strategies');
-  }
+    private async post<T>(endpoint: string, data?: any): Promise<T> {
+        return this.request<T>(endpoint, {
+            method: 'POST',
+            body: data ? JSON.stringify(data) : undefined,
+        });
+    }
 
-  async getStrategyPerformance() {
-    return this.fetch('/strategies/performance');
-  }
+    // Health & Status
+    async getHealth() {
+        return this.get<any>('/health');
+    }
 
-  async routeStrategies(regime: string, force: boolean = false) {
-    return this.fetch('/strategies/route', {
-      method: 'POST',
-      body: JSON.stringify({ regime, force }),
-    });
-  }
+    async getStatus() {
+        return this.get<any>('/status');
+    }
 
-  // Risk
-  async getRisk(): Promise<RiskData> {
-    return this.fetch<RiskData>('/risk');
-  }
+    // Regime Detection
+    async getCurrentRegime(): Promise<Regime> {
+        return this.get<Regime>('/regime');
+    }
 
-  async getRiskAlerts() {
-    return this.fetch('/risk/alerts');
-  }
+    async getRegimeHistory(limit: number = 100): Promise<RegimeHistory> {
+        return this.get<RegimeHistory>(`/regime/history?limit=${limit}`);
+    }
+
+    // Portfolio
+    async getPortfolio(): Promise<Portfolio> {
+        return this.get<Portfolio>('/portfolio');
+    }
+
+    async getPositions(): Promise<Positions> {
+        return this.get<Positions>('/portfolio/positions');
+    }
+
+    // Strategies
+    async getStrategies(): Promise<Strategies> {
+        return this.get<Strategies>('/strategies');
+    }
+
+    async getStrategyPerformance() {
+        return this.get<any>('/strategies/performance');
+    }
+
+    async routeStrategies(regime: string, force: boolean = false) {
+        return this.post<any>('/strategies/route', { regime, force });
+    }
+
+    // Risk Monitoring
+    async getRiskStatus(): Promise<RiskStatus> {
+        return this.get<RiskStatus>('/risk');
+    }
+
+    async getRiskAlerts() {
+        return this.get<{ alerts: RiskAlert[] }>('/risk/alerts');
+    }
 }
 
 // Export singleton instance

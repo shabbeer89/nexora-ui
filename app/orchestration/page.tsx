@@ -8,6 +8,7 @@ import { BulkActionsBar } from "@/components/orchestration/BulkActionsBar";
 import { cn } from "@/utils/cn";
 import { toast } from "sonner";
 import { Folder, Trash2, Edit2, Check, X, Palette } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const PREDEFINED_COLORS = [
     '#3b82f6', '#ef4444', '#22c55e', '#eab308',
@@ -15,6 +16,7 @@ const PREDEFINED_COLORS = [
 ];
 
 export default function OrchestrationPage() {
+    const { isAdmin, canControlBots, canConfigureSystem } = useAuth();
     const { bots, groups, fetchBots, fetchGroups, createGroup, deleteGroup, updateGroup } = useStore();
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState<'all' | 'running' | 'stopped' | 'error'>('all');
@@ -210,13 +212,15 @@ export default function OrchestrationPage() {
 
                                 {/* Main Actions */}
                                 <div className="flex flex-col gap-2 pl-1">
-                                    <Link
-                                        href="/orchestration/new"
-                                        className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-3 py-2.5 rounded-xl text-xs font-bold transition-all shadow-lg shadow-blue-600/10"
-                                    >
-                                        <Plus className="w-4 h-4" />
-                                        <span>New Bot</span>
-                                    </Link>
+                                    {canConfigureSystem && (
+                                        <Link
+                                            href="/orchestration/new"
+                                            className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-3 py-2.5 rounded-xl text-xs font-bold transition-all shadow-lg shadow-blue-600/10"
+                                        >
+                                            <Plus className="w-4 h-4" />
+                                            <span>New Bot</span>
+                                        </Link>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -269,13 +273,15 @@ export default function OrchestrationPage() {
                                 </button>
                             ))}
 
-                            <button
-                                onClick={() => setIsManageModalOpen(true)}
-                                className="whitespace-nowrap px-4 py-3 rounded-xl text-xs font-bold bg-slate-900/50 border border-slate-800 border-dashed text-slate-500 hover:text-blue-400 hover:border-blue-500/50 hover:bg-blue-500/5 transition-all flex items-center gap-2"
-                            >
-                                <Plus className="w-3.5 h-3.5" />
-                                <span>Manage Groups</span>
-                            </button>
+                            {canControlBots && (
+                                <button
+                                    onClick={() => setIsManageModalOpen(true)}
+                                    className="whitespace-nowrap px-4 py-3 rounded-xl text-xs font-bold bg-slate-900/50 border border-slate-800 border-dashed text-slate-500 hover:text-blue-400 hover:border-blue-500/50 hover:bg-blue-500/5 transition-all flex items-center gap-2"
+                                >
+                                    <Plus className="w-3.5 h-3.5" />
+                                    <span>Manage Groups</span>
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -413,8 +419,10 @@ export default function OrchestrationPage() {
                     )}
                 </div>
 
-                {/* Bulk Actions Bar */}
-                <BulkActionsBar filteredBots={filteredBots} />
+                {/* Bulk Actions Bar - only for controls */}
+                {canControlBots && (
+                    <BulkActionsBar filteredBots={filteredBots} />
+                )}
             </div>
         </div>
     );

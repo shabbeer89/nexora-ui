@@ -9,7 +9,7 @@ import { useStore } from '@/store/useStore';
 import { getAccessToken, setTokens } from '@/lib/backend-api';
 
 // Role hierarchy (higher index = more permissions)
-export const ROLES = ['TRADER', 'ADMIN', 'SUPER_ADMIN'] as const;
+export const ROLES = ['VIEWER', 'TRADER', 'ADMIN', 'SUPER_ADMIN'] as const;
 export type UserRole = typeof ROLES[number];
 
 export interface AuthUser {
@@ -19,6 +19,7 @@ export interface AuthUser {
     role: UserRole;
     organizationId?: string;
     organizationName?: string;
+    scopes?: string[]; // Added scopes from JWT
 }
 
 interface UseAuthReturn {
@@ -28,6 +29,7 @@ interface UseAuthReturn {
     organizationId: string | null;
 
     // Role checks
+    isViewer: boolean;
     isTrader: boolean;
     isAdmin: boolean;
     isSuperAdmin: boolean;
@@ -35,6 +37,8 @@ interface UseAuthReturn {
     // Permission helpers
     hasRole: (requiredRole: UserRole) => boolean;
     hasAnyRole: (roles: UserRole[]) => boolean;
+    canControlBots: boolean;    // Start/Stop/Pause
+    canConfigureSystem: boolean; // Edit configs
     canAccessAdmin: boolean;
     canManageUsers: boolean;
     canManageOrganizations: boolean;
@@ -64,7 +68,7 @@ function parseToken(token: string): Partial<AuthUser> | null {
         const payload = JSON.parse(jsonPayload);
 
         // Handle both 'role' (string) and 'roles' (array) from JWT
-        let role: UserRole = 'TRADER';
+        let role: UserRole = 'VIEWER';
         if (payload.role) {
             role = payload.role as UserRole;
         } else if (payload.roles && Array.isArray(payload.roles) && payload.roles.length > 0) {
@@ -72,10 +76,10 @@ function parseToken(token: string): Partial<AuthUser> | null {
             const firstRole = payload.roles[0].toUpperCase();
             if (firstRole === 'ADMIN' || firstRole === 'SUPER_ADMIN') {
                 role = firstRole as UserRole;
-            } else if (firstRole === 'USER' || firstRole === 'TRADER') {
+            } else if (firstRole === 'TRADER' || firstRole === 'USER') {
                 role = 'TRADER';
             } else {
-                role = firstRole as UserRole;
+                role = 'VIEWER';
             }
         }
 
@@ -353,6 +357,7 @@ export function useAuth(): UseAuthReturn {
         organizationId: authUser?.organizationId || null,
 
         // Role checks
+        isViewer: role === 'VIEWER',
         isTrader: role === 'TRADER',
         isAdmin: role === 'ADMIN' || role === 'SUPER_ADMIN',
         isSuperAdmin: role === 'SUPER_ADMIN',
@@ -360,6 +365,8 @@ export function useAuth(): UseAuthReturn {
         // Permission helpers
         hasRole,
         hasAnyRole,
+        canControlBots: role === 'TRADER' || role === 'ADMIN' || role === 'SUPER_ADMIN',
+        canConfigureSystem: role === 'ADMIN' || role === 'SUPER_ADMIN',
         canAccessAdmin: hasRole('ADMIN'),
         canManageUsers: hasRole('ADMIN'),
         canManageOrganizations: role === 'SUPER_ADMIN',

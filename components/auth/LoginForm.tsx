@@ -64,8 +64,38 @@ export function LoginForm() {
             store.fetchOrders();
         }, 1000); // Small delay to ensure connection is established
 
-        console.log('[LoginForm] Redirecting to dashboard...');
-        router.push('/');
+        // Step 3: Determine redirect based on role
+        const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') || localStorage.getItem('accessToken') : null;
+        let redirectPath = '/';
+
+        if (token) {
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(
+                    atob(base64).split('').map(c =>
+                        '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+                    ).join('')
+                );
+                const payload = JSON.parse(jsonPayload);
+
+                // Check role from token
+                const role = payload.role || (payload.roles && payload.roles[0]);
+
+                if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
+                    redirectPath = '/nexora';
+                    console.log('[LoginForm] Admin user detected, redirecting to Nexora Mission Control');
+                } else if (role === 'TRADER' || role === 'USER') {
+                    redirectPath = '/user/dashboard';
+                    console.log('[LoginForm] Trader user detected, redirecting to user dashboard');
+                }
+            } catch (e) {
+                console.error('[LoginForm] Failed to parse token for role:', e);
+            }
+        }
+
+        console.log(`[LoginForm] Redirecting to ${redirectPath}...`);
+        router.push(redirectPath);
     };
 
     return (

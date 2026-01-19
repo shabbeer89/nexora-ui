@@ -10,6 +10,7 @@ import { backendApi } from "@/lib/backend-api";
 import { toast } from "sonner";
 import { DeleteBotModal } from "@/components/ui/DeleteBotModal";
 import { formatStrategyName, formatExchangeName } from "@/utils/format";
+import { useAuth } from "@/hooks/useAuth";
 
 interface BotCardProps {
     bot: Bot;
@@ -62,6 +63,7 @@ const getBotGroupColor = (botId: string, groups: any[]) => {
 };
 
 export function BotCard({ bot }: BotCardProps) {
+    const { canControlBots, canConfigureSystem } = useAuth();
     const { updateBotStatus, fetchBots, selectedBotIds, toggleBotSelection, groups } = useStore();
     const [isLoading, setIsLoading] = useState(false);
     const uptime = useUptime(bot.startedAt || bot.deployedAt, bot.status === 'running');
@@ -316,7 +318,7 @@ export function BotCard({ bot }: BotCardProps) {
 
                     <div className="flex items-center gap-1.5 shrink-0">
                         {/* Edit Button (shown on hover when stopped) */}
-                        {bot.status !== 'running' && (
+                        {bot.status !== 'running' && canConfigureSystem && (
                             <Link
                                 href={`/orchestration/${bot.id}/edit`}
                                 className={cn(
@@ -333,53 +335,57 @@ export function BotCard({ bot }: BotCardProps) {
                         )}
 
                         {/* Delete Button (shown on hover when stopped) */}
-                        <button
-                            onClick={(e) => { e.stopPropagation(); setShowDeleteModal(true); }}
-                            disabled={isDeleting || bot.status === 'running'}
-                            className={cn(
-                                "p-2 rounded-lg transition-all duration-200",
-                                "bg-red-500/10 text-red-500 hover:bg-red-500/20",
-                                "disabled:opacity-50 disabled:cursor-not-allowed",
-                                // Always visible on mobile, hover to show on desktop
-                                "opacity-100 md:opacity-0 md:group-hover:opacity-100",
-                                bot.status === 'running' && "hidden"
-                            )}
-                            title={bot.status === 'running' ? 'Stop bot before deleting' : 'Delete bot'}
-                        >
-                            {isDeleting ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                                <Trash2 className="h-4 w-4" />
-                            )}
-                        </button>
+                        {canConfigureSystem && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); setShowDeleteModal(true); }}
+                                disabled={isDeleting || bot.status === 'running'}
+                                className={cn(
+                                    "p-2 rounded-lg transition-all duration-200",
+                                    "bg-red-500/10 text-red-500 hover:bg-red-500/20",
+                                    "disabled:opacity-50 disabled:cursor-not-allowed",
+                                    // Always visible on mobile, hover to show on desktop
+                                    "opacity-100 md:opacity-0 md:group-hover:opacity-100",
+                                    bot.status === 'running' && "hidden"
+                                )}
+                                title={bot.status === 'running' ? 'Stop bot before deleting' : 'Delete bot'}
+                            >
+                                {isDeleting ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Trash2 className="h-4 w-4" />
+                                )}
+                            </button>
+                        )}
 
                         {/* Start/Stop Button */}
-                        <button
-                            onClick={handleToggle}
-                            disabled={isTransitioning}
-                            className={cn(
-                                "p-2 rounded-lg transition-all duration-200 flex items-center justify-center min-w-[40px] min-h-[40px]",
-                                // Always visible on mobile or when selected, hover to show on desktop
-                                isSelected
-                                    ? "opacity-100"
-                                    : "opacity-100 md:opacity-0 md:group-hover:opacity-100",
-                                bot.status === 'running' && !isTransitioning
-                                    ? "bg-red-500/10 text-red-500 hover:bg-red-500/20"
-                                    : !isTransitioning
-                                        ? "bg-green-500/10 text-green-500 hover:bg-green-500/20"
-                                        : "bg-slate-700/50 text-slate-500",
-                                isTransitioning && "opacity-70 cursor-not-allowed"
-                            )}
-                            title={bot.status === 'running' ? 'Stop bot' : 'Start bot'}
-                        >
-                            {isTransitioning ? (
-                                <Loader2 className="h-5 w-5 animate-spin" />
-                            ) : bot.status === 'running' ? (
-                                <Square className="h-5 w-5 fill-current" />
-                            ) : (
-                                <Play className="h-5 w-5 fill-current" />
-                            )}
-                        </button>
+                        {canControlBots && (
+                            <button
+                                onClick={handleToggle}
+                                disabled={isTransitioning}
+                                className={cn(
+                                    "p-2 rounded-lg transition-all duration-200 flex items-center justify-center min-w-[40px] min-h-[40px]",
+                                    // Always visible on mobile or when selected, hover to show on desktop
+                                    isSelected
+                                        ? "opacity-100"
+                                        : "opacity-100 md:opacity-0 md:group-hover:opacity-100",
+                                    bot.status === 'running' && !isTransitioning
+                                        ? "bg-red-500/10 text-red-500 hover:bg-red-500/20"
+                                        : !isTransitioning
+                                            ? "bg-green-500/10 text-green-500 hover:bg-green-500/20"
+                                            : "bg-slate-700/50 text-slate-500",
+                                    isTransitioning && "opacity-70 cursor-not-allowed"
+                                )}
+                                title={bot.status === 'running' ? 'Stop bot' : 'Start bot'}
+                            >
+                                {isTransitioning ? (
+                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                ) : bot.status === 'running' ? (
+                                    <Square className="h-5 w-5 fill-current" />
+                                ) : (
+                                    <Play className="h-5 w-5 fill-current" />
+                                )}
+                            </button>
+                        )}
                     </div>
                 </div>
 
