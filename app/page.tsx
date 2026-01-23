@@ -15,12 +15,8 @@ export default function Home() {
 
   // Redirect users to appropriate dashboard
   useEffect(() => {
-    if (isAdmin) {
-      // Admin users go to Nexora Mission Control
-      router.replace('/nexora');
-    } else if (isTrader) {
-      // Trader users go to their dashboard
-      router.replace('/user/dashboard');
+    if (isAdmin || isTrader) {
+      router.replace('/nexora/overview');
     }
   }, [isTrader, isAdmin, router]);
 

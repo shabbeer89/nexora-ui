@@ -83,11 +83,11 @@ export function LoginForm() {
                 const role = payload.role || (payload.roles && payload.roles[0]);
 
                 if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
-                    redirectPath = '/nexora';
+                    redirectPath = '/nexora/overview';
                     console.log('[LoginForm] Admin user detected, redirecting to Nexora Mission Control');
                 } else if (role === 'TRADER' || role === 'USER') {
-                    redirectPath = '/user/dashboard';
-                    console.log('[LoginForm] Trader user detected, redirecting to user dashboard');
+                    redirectPath = '/nexora/overview';
+                    console.log('[LoginForm] Trader user detected, redirecting to Mission Control');
                 }
             } catch (e) {
                 console.error('[LoginForm] Failed to parse token for role:', e);

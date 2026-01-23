@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LiveOrderBook } from './LiveOrderBook';
 import { TradeExecutionFeed } from './TradeExecutionFeed';
 import { Zap, Target, ShieldAlert, BarChart3, ArrowUpRight, ArrowDownRight, Wallet, History } from 'lucide-react';
@@ -12,12 +12,74 @@ interface TradingCockpitProps {
     symbol: string;
 }
 
+interface Trade {
+    id: string;
+    symbol: string;
+    side: string;
+    amount: number;
+    price: number;
+    timestamp: string;
+}
+
 export default function TradingCockpit({ symbol }: TradingCockpitProps) {
     const [side, setSide] = useState<'BUY' | 'SELL'>('BUY');
     const [orderType, setOrderType] = useState<'LIMIT' | 'MARKET'>('LIMIT');
     const [price, setPrice] = useState('');
     const [amount, setAmount] = useState('');
     const [loading, setLoading] = useState(false);
+
+    // Real data states
+    const [balance, setBalance] = useState<number>(0);
+    const [recentTrades, setRecentTrades] = useState<Trade[]>([]);
+    const [riskData, setRiskData] = useState<any>(null);
+
+    // Fetch real balance
+    useEffect(() => {
+        const fetchBalance = async () => {
+            try {
+                const response = await fetch('http://localhost:8888/api/portfolio');
+                const data = await response.json();
+                setBalance(data.total_value_usd || 0);
+            } catch (err) {
+                console.error('Failed to fetch balance:', err);
+            }
+        };
+        fetchBalance();
+        const interval = setInterval(fetchBalance, 10000); // Refresh every 10s
+        return () => clearInterval(interval);
+    }, []);
+
+    // Fetch recent trades
+    useEffect(() => {
+        const fetchTrades = async () => {
+            try {
+                const response = await fetch('http://localhost:8888/api/trades?limit=5');
+                const data = await response.json();
+                setRecentTrades(data.trades || []);
+            } catch (err) {
+                console.error('Failed to fetch trades:', err);
+            }
+        };
+        fetchTrades();
+        const interval = setInterval(fetchTrades, 5000); // Refresh every 5s
+        return () => clearInterval(interval);
+    }, []);
+
+    // Fetch risk assessment
+    useEffect(() => {
+        const fetchRisk = async () => {
+            try {
+                const response = await fetch('http://localhost:8888/api/risk/assessment');
+                const data = await response.json();
+                setRiskData(data);
+            } catch (err) {
+                console.error('Failed to fetch risk data:', err);
+            }
+        };
+        fetchRisk();
+        const interval = setInterval(fetchRisk, 15000); // Refresh every 15s
+        return () => clearInterval(interval);
+    }, []);
 
     const handleSubmitOrder = async () => {
         if (!amount || (orderType === 'LIMIT' && !price)) {
@@ -35,6 +97,10 @@ export default function TradingCockpit({ symbol }: TradingCockpitProps) {
                 amount: parseFloat(amount)
             });
             toast.success(`Manual ${side} order submitted`);
+            // Refresh data after order
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
         } catch (err: any) {
             toast.error(err.response?.data?.error || 'Order execution failed');
         } finally {
@@ -147,10 +213,18 @@ export default function TradingCockpit({ symbol }: TradingCockpitProps) {
                                     <span className="text-[10px] font-black text-slate-500 uppercase">Available Assets</span>
                                     <Wallet className="w-3 h-3 text-emerald-500" />
                                 </div>
-                                <div className="text-2xl font-black text-white">12,402.15 <span className="text-xs text-slate-500">USDT</span></div>
+                                <div className="text-2xl font-black text-white">
+                                    {balance.toFixed(2)} <span className="text-xs text-slate-500">USDT</span>
+                                </div>
                                 <div className="grid grid-cols-4 gap-2">
                                     {['25%', '50%', '75%', '100%'].map(p => (
-                                        <button key={p} className="py-2 rounded-xl bg-white/[0.03] border border-white/5 text-[9px] font-black text-slate-400 hover:text-white hover:bg-white/10 transition-all">{p}</button>
+                                        <button
+                                            key={p}
+                                            onClick={() => setAmount((balance * parseFloat(p) / 100).toFixed(2))}
+                                            className="py-2 rounded-xl bg-white/[0.03] border border-white/5 text-[9px] font-black text-slate-400 hover:text-white hover:bg-white/10 transition-all"
+                                        >
+                                            {p}
+                                        </button>
                                     ))}
                                 </div>
                             </div>
@@ -160,7 +234,14 @@ export default function TradingCockpit({ symbol }: TradingCockpitProps) {
                                     <ShieldAlert className="w-4 h-4 text-red-500" />
                                     <span className="text-[10px] font-black text-red-500 uppercase tracking-widest">Risk Assessment</span>
                                 </div>
-                                <p className="text-[10px] text-slate-400 leading-relaxed">Estimated Liquidation Price: <span className="text-white font-bold">$42,215</span>. Margin usage 4.2x. Position size exceeds baseline safety threshold.</p>
+                                <p className="text-[10px] text-slate-400 leading-relaxed">
+                                    {riskData ? (
+                                        <>Liquidation: <span className="text-white font-bold">${riskData.liquidation_price?.toFixed(2) || 'N/A'}</span>.
+                                            Margin: {riskData.margin_usage || 'N/A'}. {riskData.warning || 'Position within limits.'}</>
+                                    ) : (
+                                        'Loading risk data...'
+                                    )}
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -192,18 +273,26 @@ export default function TradingCockpit({ symbol }: TradingCockpitProps) {
                         <span className="text-[9px] font-mono text-cyan-500">LIVE BRIDGE</span>
                     </div>
                     <div className="flex-1 overflow-y-auto space-y-4 custom-scrollbar">
-                        {[1, 2, 3, 4, 5].map(i => (
-                            <div key={i} className="flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/5 group hover:border-white/10 transition-all">
-                                <div className="flex items-center gap-3">
-                                    <div className={cn("w-1.5 h-1.5 rounded-full shadow-lg", i % 2 === 0 ? "bg-emerald-500" : "bg-red-500")}></div>
-                                    <div>
-                                        <div className="text-[10px] font-bold text-white">0.425 BTC</div>
-                                        <div className="text-[8px] font-mono text-slate-500">@ 64,215.15</div>
+                        {recentTrades.length > 0 ? (
+                            recentTrades.map((trade, i) => (
+                                <div key={trade.id || i} className="flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/5 group hover:border-white/10 transition-all">
+                                    <div className="flex items-center gap-3">
+                                        <div className={cn("w-1.5 h-1.5 rounded-full shadow-lg", trade.side === 'buy' ? "bg-emerald-500" : "bg-red-500")}></div>
+                                        <div>
+                                            <div className="text-[10px] font-bold text-white">{trade.amount?.toFixed(4)} {trade.symbol?.split('/')[0] || 'BTC'}</div>
+                                            <div className="text-[8px] font-mono text-slate-500">@ {trade.price?.toFixed(2)}</div>
+                                        </div>
+                                    </div>
+                                    <div className="text-[8px] font-mono text-slate-600">
+                                        {new Date(trade.timestamp).toLocaleTimeString()}
                                     </div>
                                 </div>
-                                <div className="text-[8px] font-mono text-slate-600">14:22:45</div>
+                            ))
+                        ) : (
+                            <div className="text-center text-slate-500 text-[10px] py-8">
+                                No recent trades
                             </div>
-                        ))}
+                        )}
                     </div>
                 </div>
             </div>

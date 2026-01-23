@@ -7,13 +7,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 
-const API_URL = process.env.HUMMINGBOT_API_URL || 'http://localhost:8000';
+const API_URL = process.env.HUMMINGBOT_API_URL || 'http://localhost:8888';
+const API_USER = process.env.HUMMINGBOT_API_USER || 'admin';
+const API_PASS = process.env.HUMMINGBOT_API_PASS || 'admin';
 
 const getAuthHeaders = (request: Request) => {
-    const authHeader = request.headers.get('authorization');
+    // ALWAYS use Basic Auth for upstream calls to the Bot/Hummingbot API
+    const credentials = Buffer.from(`${API_USER}:${API_PASS}`).toString('base64');
     return {
         'Content-Type': 'application/json',
-        ...(authHeader && { 'Authorization': authHeader })
+        'Authorization': `Basic ${credentials}`
     };
 };
 
@@ -26,20 +29,20 @@ export async function POST(request: NextRequest) {
 
         // Map strategy ID to script name
         const strategyScriptMap: Record<string, string> = {
-            'pmm': 'production_pmm.py',
+            'pmm': 'simple_pmm.py',
             'xemm': 'simple_xemm.py',
             'dman': 'v2_directional_rsi.py',
-            'dca': 'production_dca_strategy.py',
-            'avellaneda': 'simple_avellaneda.py',
-            'arbitrage': 'triangular_arbitrage_production.py',
-            'liquidity_mining': 'simple_lp.py',
-            'stat_arb': 'simple_stat_arb.py',
-            'mean_reversion': 'simple_mean_reversion.py',
-            'momentum': 'simple_momentum.py',
-            'twap': 'simple_twap.py', // Placeholder
-            'vwap': 'simple_vwap.py', // Placeholder
-            'rebalance': 'simple_rebalance.py',
-            'smart_bot': 'production_smart_bot.py',
+            'dca': 'v2_with_controllers.py',
+            'avellaneda': 'simple_pmm.py',
+            'arbitrage': 'triangular_arbitrage.py',
+            'liquidity_mining': 'amm_trade_example.py',
+            'stat_arb': 'v2_with_controllers.py',
+            'mean_reversion': 'simple_pmm.py',
+            'momentum': 'v2_directional_rsi.py',
+            'twap': 'simple_vwap.py',
+            'vwap': 'simple_vwap.py',
+            'rebalance': '1overN_portfolio.py',
+            'smart_bot': 'v2_with_controllers.py',
         };
 
         // Validate strategy is supported

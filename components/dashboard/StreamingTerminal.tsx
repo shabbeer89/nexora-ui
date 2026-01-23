@@ -18,7 +18,14 @@ interface StreamingTerminalProps {
 }
 
 export default function StreamingTerminal({ botId, initialLogs = [], recentlyActive }: StreamingTerminalProps) {
-    const [logs, setLogs] = useState<LogEntry[]>(initialLogs);
+    const [logs, setLogs] = useState<LogEntry[]>([]);
+
+    // Sync initial logs when they change or component mounts
+    useEffect(() => {
+        if (initialLogs.length > 0) {
+            setLogs(initialLogs);
+        }
+    }, [initialLogs]);
     const [searchTerm, setSearchTerm] = useState('');
     const [levelFilter, setLevelFilter] = useState<string>('ALL');
     const scrollRef = useRef<HTMLDivElement>(null);

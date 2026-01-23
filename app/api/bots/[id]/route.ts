@@ -8,13 +8,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 
-const API_URL = process.env.HUMMINGBOT_API_URL || 'http://localhost:8000';
+const API_URL = process.env.HUMMINGBOT_API_URL || 'http://localhost:8888';
+const API_USER = process.env.HUMMINGBOT_API_USER || 'admin';
+const API_PASS = process.env.HUMMINGBOT_API_PASS || 'admin';
 
 const getAuthHeaders = (request: Request) => {
-    const authHeader = request.headers.get('authorization');
+    // ALWAYS use Basic Auth for upstream calls to the Bot/Hummingbot API
+    const credentials = Buffer.from(`${API_USER}:${API_PASS}`).toString('base64');
     return {
         'Content-Type': 'application/json',
-        ...(authHeader && { 'Authorization': authHeader })
+        'Authorization': `Basic ${credentials}`
     };
 };
 
@@ -48,15 +51,16 @@ export async function GET(
         console.log(`[Bot Detail] Fetching bot: ${botName} (ID: ${id})`);
 
 
-        // Fetch bot status, config, and bot run info in parallel using allSettled to prevent partial failures from crashing the request
-        const [statusRes, configRes, botRunsRes] = await Promise.allSettled([
+        // Fetch bot status, config, bot run info, and Docker status in parallel
+        const [statusRes, configRes, botRunsRes, dockerStatusRes] = await Promise.allSettled([
             axios.get(`${API_URL}/bot-orchestration/${botName}/status`, axiosConfig),
             axios.get(`${API_URL}/scripts/configs/${botName}`, axiosConfig),
-            axios.get(`${API_URL}/bot-orchestration/bot-runs?bot_name=${botName}&limit=1`, axiosConfig)
+            axios.get(`${API_URL}/bot-orchestration/bot-runs?bot_name=${botName}&limit=1`, axiosConfig),
+            axios.get(`${API_URL}/docker/active-containers?name_filter=${botName}`, axiosConfig)
         ]);
 
         // Process Status
-        let statusData = {};
+        let statusData: any = {};
         let statusStatusCode = 0;
 
         if (statusRes.status === 'fulfilled') {
@@ -115,6 +119,33 @@ export async function GET(
             }
         }
 
+        // Process Docker Status
+        let dockerContainerData = null;
+        if (dockerStatusRes.status === 'fulfilled' && dockerStatusRes.value.status === 200) {
+            const containers = dockerStatusRes.value.data;
+            if (Array.isArray(containers)) {
+                dockerContainerData = containers.find((c: any) => c.name === botName);
+            }
+        }
+
+        // 4. LOG FALLBACK: If MQTT logs are empty, try to fetch from physical log files
+        // This handles cases where the bot is starting but not yet connected to MQTT
+        if (statusRes.status === 'fulfilled' && (!statusData.general_logs || statusData.general_logs.length <= 1)) {
+            try {
+                // We use a dedicated proxy route or local filesystem helper if available
+                // For now, let's try to fetch via the archived-bots/logs endpoint if it exists
+                const logFileRes = await axios.get(`${API_URL}/bot-orchestration/instance-logs/${botName}`, axiosConfig).catch(() => null);
+                if (logFileRes?.status === 200 && logFileRes.data?.logs) {
+                    statusData.general_logs = logFileRes.data.logs.map((l: string, i: number) => ({
+                        msg: l,
+                        level_name: 'INFO',
+                        timestamp: Date.now() / 1000 - i,
+                        logger_name: 'filesystem'
+                    })).reverse();
+                }
+            } catch (e) { }
+        }
+
         // Calculate runtime if bot is running
         let runtime: { hours: number; minutes: number; totalMs: number } | null = null;
         if (botRunData.deployedAt && !botRunData.stoppedAt) {
@@ -126,6 +157,15 @@ export async function GET(
             runtime = { hours, minutes, totalMs: diffMs };
         }
 
+        // Determine derived status
+        const isDockerRunning = dockerContainerData?.status === 'running';
+        const isBotRunning = statusData.status === 'running';
+
+        let derivedStatus = 'stopped';
+        if (isBotRunning) derivedStatus = 'running';
+        else if (isDockerRunning) derivedStatus = 'starting'; // Container up but app still initializing
+        else if (botRunData.runStatus === 'FAILED') derivedStatus = 'error';
+
         // If we have absolutely no data (all failed), then throw error
         if (statusRes.status === 'rejected' && configRes.status === 'rejected' && botRunsRes.status === 'rejected') {
             throw new Error('All upstream requests failed');
@@ -135,6 +175,9 @@ export async function GET(
         return NextResponse.json({
             status: 'success',
             data: {
+                name: botName, // Explicitly ensure name is present
+                status: derivedStatus,
+                docker_status: dockerContainerData?.status || 'missing',
                 ...statusData,
                 config: configData,
                 botRun: botRunData,

@@ -120,28 +120,28 @@ export default function AlertsManager() {
                                 <div className="text-xs text-slate-400">Real-time alerts</div>
                             </div>
                         </div>
-                        <div className={`w-3 h-3 rounded-full ${config.telegram.status === 'connected' ? 'bg-emerald-500' : 'bg-red-500'} animate-pulse`}></div>
+                        <div className={`w-3 h-3 rounded-full ${config?.telegram?.status === 'connected' ? 'bg-emerald-500' : 'bg-red-500'} animate-pulse`}></div>
                     </div>
 
                     <div className="space-y-3 mb-4">
                         <div>
                             <div className="text-xs text-slate-400 mb-1">Status</div>
-                            <div className={`text-sm font-bold ${config.telegram.status === 'connected' ? 'text-emerald-400' : 'text-red-400'}`}>
-                                {config.telegram.status}
+                            <div className={`text-sm font-bold ${config?.telegram?.status === 'connected' ? 'text-emerald-400' : 'text-red-400'}`}>
+                                {config?.telegram?.status || 'Unknown'}
                             </div>
                         </div>
                         <div>
                             <div className="text-xs text-slate-400 mb-1">Chat ID</div>
-                            <div className="text-sm font-mono text-white">{config.telegram.chat_id || 'Not configured'}</div>
+                            <div className="text-sm font-mono text-white">{config?.telegram?.chat_id || 'Not configured'}</div>
                         </div>
                     </div>
 
                     <div className="flex gap-2">
                         <button
-                            onClick={() => toggleChannel('telegram', !config.telegram.enabled)}
-                            className={`flex-1 px-4 py-2 rounded-lg font-bold text-sm transition-colors ${config.telegram.enabled ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-700 text-slate-400 border border-slate-600'}`}
+                            onClick={() => toggleChannel('telegram', !config?.telegram?.enabled)}
+                            className={`flex-1 px-4 py-2 rounded-lg font-bold text-sm transition-colors ${config?.telegram?.enabled ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-700 text-slate-400 border border-slate-600'}`}
                         >
-                            {config.telegram.enabled ? 'Enabled' : 'Disabled'}
+                            {config?.telegram?.enabled ? 'Enabled' : 'Disabled'}
                         </button>
                         <button
                             onClick={() => testAlert('telegram')}
@@ -165,28 +165,28 @@ export default function AlertsManager() {
                                 <div className="text-xs text-slate-400">Webhook notifications</div>
                             </div>
                         </div>
-                        <div className={`w-3 h-3 rounded-full ${config.discord.status === 'connected' ? 'bg-emerald-500' : 'bg-red-500'} animate-pulse`}></div>
+                        <div className={`w-3 h-3 rounded-full ${config?.discord?.status === 'connected' ? 'bg-emerald-500' : 'bg-red-500'} animate-pulse`}></div>
                     </div>
 
                     <div className="space-y-3 mb-4">
                         <div>
                             <div className="text-xs text-slate-400 mb-1">Status</div>
-                            <div className={`text-sm font-bold ${config.discord.status === 'connected' ? 'text-emerald-400' : 'text-red-400'}`}>
-                                {config.discord.status}
+                            <div className={`text-sm font-bold ${config?.discord?.status === 'connected' ? 'text-emerald-400' : 'text-red-400'}`}>
+                                {config?.discord?.status || 'Unknown'}
                             </div>
                         </div>
                         <div>
                             <div className="text-xs text-slate-400 mb-1">Webhook</div>
-                            <div className="text-sm font-mono text-white truncate">{config.discord.webhook_url || 'Not configured'}</div>
+                            <div className="text-sm font-mono text-white truncate">{config?.discord?.webhook_url || 'Not configured'}</div>
                         </div>
                     </div>
 
                     <div className="flex gap-2">
                         <button
-                            onClick={() => toggleChannel('discord', !config.discord.enabled)}
-                            className={`flex-1 px-4 py-2 rounded-lg font-bold text-sm transition-colors ${config.discord.enabled ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-700 text-slate-400 border border-slate-600'}`}
+                            onClick={() => toggleChannel('discord', !config?.discord?.enabled)}
+                            className={`flex-1 px-4 py-2 rounded-lg font-bold text-sm transition-colors ${config?.discord?.enabled ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-700 text-slate-400 border border-slate-600'}`}
                         >
-                            {config.discord.enabled ? 'Enabled' : 'Disabled'}
+                            {config?.discord?.enabled ? 'Enabled' : 'Disabled'}
                         </button>
                         <button
                             onClick={() => testAlert('discord')}
@@ -210,28 +210,28 @@ export default function AlertsManager() {
                                 <div className="text-xs text-slate-400">Daily summaries</div>
                             </div>
                         </div>
-                        <div className={`w-3 h-3 rounded-full ${config.email.status === 'connected' ? 'bg-emerald-500' : 'bg-red-500'} animate-pulse`}></div>
+                        <div className={`w-3 h-3 rounded-full ${config?.email?.status === 'connected' ? 'bg-emerald-500' : 'bg-red-500'} animate-pulse`}></div>
                     </div>
 
                     <div className="space-y-3 mb-4">
                         <div>
                             <div className="text-xs text-slate-400 mb-1">Status</div>
-                            <div className={`text-sm font-bold ${config.email.status === 'connected' ? 'text-emerald-400' : 'text-red-400'}`}>
-                                {config.email.status}
+                            <div className={`text-sm font-bold ${config?.email?.status === 'connected' ? 'text-emerald-400' : 'text-red-400'}`}>
+                                {config?.email?.status || 'Unknown'}
                             </div>
                         </div>
                         <div>
                             <div className="text-xs text-slate-400 mb-1">Recipients</div>
-                            <div className="text-sm font-mono text-white">{config.email.to_emails.length} configured</div>
+                            <div className="text-sm font-mono text-white">{config?.email?.to_emails?.length || 0} configured</div>
                         </div>
                     </div>
 
                     <div className="flex gap-2">
                         <button
-                            onClick={() => toggleChannel('email', !config.email.enabled)}
-                            className={`flex-1 px-4 py-2 rounded-lg font-bold text-sm transition-colors ${config.email.enabled ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-700 text-slate-400 border border-slate-600'}`}
+                            onClick={() => toggleChannel('email', !config?.email?.enabled)}
+                            className={`flex-1 px-4 py-2 rounded-lg font-bold text-sm transition-colors ${config?.email?.enabled ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-700 text-slate-400 border border-slate-600'}`}
                         >
-                            {config.email.enabled ? 'Enabled' : 'Disabled'}
+                            {config?.email?.enabled ? 'Enabled' : 'Disabled'}
                         </button>
                         <button
                             onClick={() => testAlert('email')}

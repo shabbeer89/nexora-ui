@@ -32,11 +32,33 @@ export default function PerformanceAnalytics() {
     const fetchMetrics = async () => {
         try {
             const response = await fetch('http://localhost:8888/api/analytics/performance');
+            if (!response.ok) {
+                if (response.status === 403) {
+                    console.warn('Performance metrics access forbidden');
+                }
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
             const data = await response.json();
             setMetrics(data);
             setLoading(false);
         } catch (error) {
             console.error('Failed to fetch performance metrics:', error);
+            // Fallback metrics to avoid UI crash
+            setMetrics({
+                total_return: 0,
+                sharpe_ratio: 0,
+                sortino_ratio: 0,
+                calmar_ratio: 0,
+                max_drawdown: 0,
+                win_rate: 0,
+                profit_factor: 0,
+                total_trades: 0,
+                avg_win: 0,
+                avg_loss: 0,
+                largest_win: 0,
+                largest_loss: 0,
+                avg_trade_duration_hours: 0
+            });
             setLoading(false);
         }
     };
@@ -92,11 +114,11 @@ export default function PerformanceAnalytics() {
                         <span className="text-xs font-bold text-emerald-400 uppercase">Sharpe Ratio</span>
                         <Award className="w-4 h-4 text-emerald-400" />
                     </div>
-                    <div className={`text-3xl font-black ${getRatioColor(metrics.sharpe_ratio, 1.0)}`}>
-                        {metrics.sharpe_ratio.toFixed(2)}
+                    <div className={`text-3xl font-black ${getRatioColor(metrics?.sharpe_ratio || 0, 1.0)}`}>
+                        {(metrics?.sharpe_ratio || 0).toFixed(2)}
                     </div>
                     <div className="text-xs text-slate-400 mt-1">
-                        {metrics.sharpe_ratio >= 2.0 ? 'Excellent' : metrics.sharpe_ratio >= 1.0 ? 'Good' : 'Poor'}
+                        {(metrics?.sharpe_ratio || 0) >= 2.0 ? 'Excellent' : (metrics?.sharpe_ratio || 0) >= 1.0 ? 'Good' : 'Poor'}
                     </div>
                 </div>
 
@@ -106,8 +128,8 @@ export default function PerformanceAnalytics() {
                         <span className="text-xs font-bold text-cyan-400 uppercase">Sortino Ratio</span>
                         <Target className="w-4 h-4 text-cyan-400" />
                     </div>
-                    <div className={`text-3xl font-black ${getRatioColor(metrics.sortino_ratio, 1.5)}`}>
-                        {metrics.sortino_ratio.toFixed(2)}
+                    <div className={`text-3xl font-black ${getRatioColor(metrics?.sortino_ratio || 0, 1.5)}`}>
+                        {(metrics?.sortino_ratio || 0).toFixed(2)}
                     </div>
                     <div className="text-xs text-slate-400 mt-1">
                         Downside Risk Adjusted
@@ -120,8 +142,8 @@ export default function PerformanceAnalytics() {
                         <span className="text-xs font-bold text-blue-400 uppercase">Calmar Ratio</span>
                         <TrendingUp className="w-4 h-4 text-blue-400" />
                     </div>
-                    <div className={`text-3xl font-black ${getRatioColor(metrics.calmar_ratio, 3.0)}`}>
-                        {metrics.calmar_ratio.toFixed(2)}
+                    <div className={`text-3xl font-black ${getRatioColor(metrics?.calmar_ratio || 0, 3.0)}`}>
+                        {(metrics?.calmar_ratio || 0).toFixed(2)}
                     </div>
                     <div className="text-xs text-slate-400 mt-1">
                         Return / Max DD
@@ -135,7 +157,7 @@ export default function PerformanceAnalytics() {
                         <AlertTriangle className="w-4 h-4 text-red-400" />
                     </div>
                     <div className="text-3xl font-black text-red-400">
-                        -{(metrics.max_drawdown * 100).toFixed(1)}%
+                        -{((metrics?.max_drawdown || 0) * 100).toFixed(1)}%
                     </div>
                     <div className="text-xs text-slate-400 mt-1">
                         Peak to Trough
@@ -149,24 +171,24 @@ export default function PerformanceAnalytics() {
                 <div className="bg-slate-800/50 border border-white/5 rounded-2xl p-6">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-sm font-black text-white uppercase tracking-wider">Win Rate</h3>
-                        <span className={`text-2xl font-black ${metrics.win_rate >= 0.6 ? 'text-emerald-400' : metrics.win_rate >= 0.5 ? 'text-cyan-400' : 'text-yellow-400'}`}>
-                            {(metrics.win_rate * 100).toFixed(1)}%
+                        <span className={`text-2xl font-black ${(metrics?.win_rate || 0) >= 0.6 ? 'text-emerald-400' : (metrics?.win_rate || 0) >= 0.5 ? 'text-cyan-400' : 'text-yellow-400'}`}>
+                            {((metrics?.win_rate || 0) * 100).toFixed(1)}%
                         </span>
                     </div>
                     <div className="h-4 bg-slate-700 rounded-full overflow-hidden">
                         <div
                             className="h-full bg-gradient-to-r from-emerald-500 to-cyan-600 transition-all duration-500"
-                            style={{ width: `${metrics.win_rate * 100}%` }}
+                            style={{ width: `${(metrics?.win_rate || 0) * 100}%` }}
                         ></div>
                     </div>
                     <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
                         <div>
                             <div className="text-slate-400">Avg Win</div>
-                            <div className="text-emerald-400 font-bold">${metrics.avg_win.toFixed(2)}</div>
+                            <div className="text-emerald-400 font-bold">${(metrics?.avg_win || 0).toFixed(2)}</div>
                         </div>
                         <div>
                             <div className="text-slate-400">Avg Loss</div>
-                            <div className="text-red-400 font-bold">${Math.abs(metrics.avg_loss).toFixed(2)}</div>
+                            <div className="text-red-400 font-bold">${Math.abs(metrics?.avg_loss || 0).toFixed(2)}</div>
                         </div>
                     </div>
                 </div>
@@ -175,8 +197,8 @@ export default function PerformanceAnalytics() {
                 <div className="bg-slate-800/50 border border-white/5 rounded-2xl p-6">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-sm font-black text-white uppercase tracking-wider">Profit Factor</h3>
-                        <span className={`text-2xl font-black ${getRatioColor(metrics.profit_factor, 1.5)}`}>
-                            {metrics.profit_factor.toFixed(2)}
+                        <span className={`text-2xl font-black ${getRatioColor(metrics?.profit_factor || 0, 1.5)}`}>
+                            {(metrics?.profit_factor || 0).toFixed(2)}
                         </span>
                     </div>
                     <div className="text-xs text-slate-400 mb-4">
@@ -185,11 +207,11 @@ export default function PerformanceAnalytics() {
                     <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
                             <div className="text-slate-400">Best Trade</div>
-                            <div className="text-emerald-400 font-bold">${metrics.largest_win.toFixed(2)}</div>
+                            <div className="text-emerald-400 font-bold">${(metrics?.largest_win || 0).toFixed(2)}</div>
                         </div>
                         <div>
                             <div className="text-slate-400">Worst Trade</div>
-                            <div className="text-red-400 font-bold">${Math.abs(metrics.largest_loss).toFixed(2)}</div>
+                            <div className="text-red-400 font-bold">${Math.abs(metrics?.largest_loss || 0).toFixed(2)}</div>
                         </div>
                     </div>
                 </div>
@@ -206,7 +228,7 @@ export default function PerformanceAnalytics() {
                 <div className="bg-slate-800/50 border border-white/5 rounded-xl p-4">
                     <div className="text-xs text-slate-400 mb-1">Avg Trade Duration</div>
                     <div className="text-2xl font-black text-cyan-400">
-                        {metrics.avg_trade_duration_hours.toFixed(1)}h
+                        {(metrics?.avg_trade_duration_hours || 0).toFixed(1)}h
                     </div>
                 </div>
                 <div className="bg-slate-800/50 border border-white/5 rounded-xl p-4">

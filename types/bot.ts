@@ -30,4 +30,6 @@ export interface Bot {
             infos: number;
         };
     };
+    isOrphaned?: boolean;
+    isNexoraInternal?: boolean;
 }

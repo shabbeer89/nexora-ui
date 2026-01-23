@@ -6,7 +6,7 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 
-const API_URL = process.env.HUMMINGBOT_API_URL || 'http://localhost:8000';
+const API_URL = process.env.HUMMINGBOT_API_URL || 'http://localhost:8888';
 const API_USER = process.env.HUMMINGBOT_API_USER || 'admin';
 const API_PASS = process.env.HUMMINGBOT_API_PASS || 'admin';
 

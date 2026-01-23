@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_URL = process.env.HUMMINGBOT_API_URL || 'http://localhost:8000';
+const API_URL = process.env.NEXORA_API_URL || 'http://localhost:8888';
 
 function getAuthHeaders() {
     // Get token from request cookies or localStorage (will be passed from client)

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const API_URL = process.env.HUMMINGBOT_API_URL || 'http://localhost:8000';
+const API_URL = process.env.HUMMINGBOT_API_URL || 'http://localhost:8888';
 
 const getAuthHeaders = (request: Request) => {
     const authHeader = request.headers.get('authorization');

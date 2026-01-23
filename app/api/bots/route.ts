@@ -7,47 +7,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 
-const API_URL = process.env.HUMMINGBOT_API_URL || 'http://localhost:8000';
+const API_URL = process.env.HUMMINGBOT_API_URL || 'http://localhost:8888';
 const API_USER = process.env.HUMMINGBOT_API_USER || 'admin';
 const API_PASS = process.env.HUMMINGBOT_API_PASS || 'admin';
 
-// Token cache for server-side auth
-let cachedToken: { token: string; expiresAt: number } | null = null;
-
-async function getServerToken(): Promise<string> {
-    if (cachedToken && Date.now() < cachedToken.expiresAt - 60000) {
-        return cachedToken.token;
-    }
-
-    try {
-        const response = await fetch(`${API_URL}/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `username=${encodeURIComponent(API_USER)}&password=${encodeURIComponent(API_PASS)}`,
-        });
-
-        if (!response.ok) {
-            throw new Error(`Auth failed: ${response.status}`);
-        }
-
-        const data = await response.json();
-        cachedToken = {
-            token: data.access_token,
-            expiresAt: Date.now() + (data.expires_in || 900) * 1000,
-        };
-        return cachedToken.token;
-    } catch (error) {
-        console.error('[API /bots] Server auth failed:', error);
-        throw error;
-    }
-}
-
-const getAuthHeaders = async (request: Request) => {
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader || `Bearer ${await getServerToken()}`;
+const getAuthHeaders = (request: Request) => {
+    // ALWAYS use Basic Auth for upstream calls to the Bot/Hummingbot API
+    const credentials = Buffer.from(`${API_USER}:${API_PASS}`).toString('base64');
     return {
         'Content-Type': 'application/json',
-        'Authorization': token
+        'Authorization': `Basic ${credentials}`
     };
 };
 
@@ -59,12 +28,26 @@ export async function GET(request: NextRequest) {
             timeout: 25000 // 25 second timeout for bot status/docker checks
         };
 
+        // Debug: Log the auth header (first 50 chars only for security)
+        const authHeader = axiosConfig.headers['Authorization'];
+        console.log(`[API /bots] Using auth header: ${authHeader?.substring(0, 50)}...`);
+
         // 1. Get all bot runs (deployed bots)
         const botRunsResponse = await axios.get(`${API_URL}/bot-orchestration/bot-runs`, axiosConfig);
+        console.log(`[API /bots] Bot runs response status: ${botRunsResponse.status}`);
+
+        let botRuns = [];
+        if (botRunsResponse.status === 200 && botRunsResponse.data?.data) {
+            botRuns = botRunsResponse.data.data;
+            console.log(`[API /bots] Found ${botRuns.length} bot runs`);
+        } else {
+            console.warn(`[API /bots] Bot runs fetch failed or returned no data: ${botRunsResponse.status}`);
+        }
 
         // 2. Get running bot statuses from orchestrator
         const statusResponse = await axios.get(`${API_URL}/bot-orchestration/status`, axiosConfig);
         const runningBots = statusResponse.data?.data || {};
+        console.log(`[API /bots] Found ${Object.keys(runningBots).length} running bots in orchestrator status`);
 
         // 3. Get Docker container statuses for accurate running detection
         let dockerContainers: Record<string, any> = {};
@@ -106,19 +89,21 @@ export async function GET(request: NextRequest) {
         }
 
         const bots = [];
-        const botRuns = botRunsResponse.data?.data || [];
-        const seenBots = new Set<string>(); // Deduplicate bot entries
 
-        // Sequential processing to ensure stability and correct auth/config fetching
-        for (const run of botRuns) {
-            const botName = run.bot_name || run.instance_name;
+        // --- IMPROVED: Collect ALL unique names ---
+        const allBotNames = new Set<string>();
+        botRuns.forEach((r: any) => allBotNames.add(r.bot_name || r.instance_name));
+        Object.keys(runningBots).forEach(name => allBotNames.add(name));
+        Object.keys(dockerContainers).forEach(name => allBotNames.add(name));
+        console.log(`[API /bots] Total unique bot names: ${allBotNames.size}`, Array.from(allBotNames));
 
-            // Skip archived bots
-            if (run.is_archived) continue;
+        // Sequential processing for stability
+        for (const botName of Array.from(allBotNames)) {
+            // Find corresponding run if exists
+            const run = botRuns.find((r: any) => (r.bot_name || r.instance_name) === botName);
 
-            // Skip duplicate bot entries
-            if (seenBots.has(botName)) continue;
-            seenBots.add(botName);
+            // Skip archived bots if we have the run data
+            if (run?.deployment_status === 'ARCHIVED') continue;
 
             // Start with 'stopped' status if not found in orchestrator
             let botStatus = runningBots[botName] || { status: 'stopped', performance: {} };
@@ -131,12 +116,8 @@ export async function GET(request: NextRequest) {
             const isRunning = containerIsRunning || botStatus?.status === 'running';
             const isStopped = !containerIsRunning && botStatus?.status === 'stopped';
 
-            if (containerIsRunning && dockerContainer) {
-                console.log(`[API /bots] ${botName} Docker Info:`, JSON.stringify(dockerContainer.state || dockerContainer));
-            }
-
-            // Get config details for this bot (Reverted to original reliable method)
-            const configName = run.config_name?.replace('.yml', '') || botName;
+            // Get config details for this bot
+            const configName = run?.config_name?.replace('.yml', '') || botName;
             let configDetails: any = null;
 
             try {
@@ -145,13 +126,11 @@ export async function GET(request: NextRequest) {
                     configDetails = configRes.data;
                 }
             } catch (e) {
-                // Config may not exist or fetch failed
+                // Config may not exist
             }
 
-            // Treat as deleted/ghost if no config file AND not running in Docker
-            if (!configDetails && !containerIsRunning) {
-                continue;
-            }
+            // If orphaned (no config and no run record), mark as Orphaned in UI
+            const isOrphaned = !configDetails && !run;
 
             // Calculate Performance
             let pnl24h = 0;
@@ -161,41 +140,26 @@ export async function GET(request: NextRequest) {
             let lastErrorTimestamp = 0;
 
             // Extract last error from logs if available
-            if (botStatus?.log_records && Array.isArray(botStatus.log_records)) {
-                // Find highest timestamp where level is ERROR
-                botStatus.log_records.forEach((log: any) => {
+            const logRecords = botStatus?.log_records || [];
+            if (Array.isArray(logRecords)) {
+                logRecords.forEach((log: any) => {
                     if ((log.level_name === 'ERROR' || log.level_no >= 40) && log.timestamp) {
-                        // timestamp is usually in seconds (float), convert to ms if needed or keep consistent
-                        const ts = log.timestamp * 1000; // Log timestamp is usually float seconds
-                        if (ts > lastErrorTimestamp) {
-                            lastErrorTimestamp = ts;
-                        }
+                        const ts = log.timestamp * 1000;
+                        if (ts > lastErrorTimestamp) lastErrorTimestamp = ts;
                     }
                 });
-
-                if (botName === 'PMM2') {
-                    console.log(`[API /bots] PMM2 Log Records: ${botStatus.log_records.length}, Found Error TS: ${lastErrorTimestamp}`);
-                }
-            } else {
-                if (botName === 'PMM2') {
-                    console.log(`[API /bots] PMM2 has NO log_records. Keys: ${Object.keys(botStatus || {}).join(', ')}`);
-                }
             }
 
-            console.log(`[API /bots] Processing ${botName}: botStatus.performance=`, JSON.stringify(botStatus?.performance));
-
-            // 1. Try orchestrator status first - check if we have ACTUAL performance data
+            // try orchestrator status first
             const hasOrchestratorData = botStatus?.performance &&
-                (typeof botStatus.performance.total_trades === 'number' && botStatus.performance.total_trades > 0) ||
-                (typeof botStatus.performance.pnl === 'number' && botStatus.performance.pnl !== 0);
+                ((typeof botStatus.performance.total_trades === 'number' && botStatus.performance.total_trades > 0) ||
+                    (typeof botStatus.performance.pnl === 'number' && botStatus.performance.pnl !== 0));
 
             if (hasOrchestratorData) {
-                console.log(`[API /bots] ${botName}: Using orchestrator performance`);
                 pnl24h = botStatus.performance.pnl || 0;
                 trades24h = botStatus.performance.total_trades || 0;
             } else {
-                console.log(`[API /bots] ${botName}: Falling back to global trades / local DB`);
-                // 2. Global Trades Fallback
+                // Fallback to global trades
                 const botTrades = globalTrades.filter(t =>
                     t.bot_name === botName ||
                     t.instance_id === botName ||
@@ -211,71 +175,51 @@ export async function GET(request: NextRequest) {
                     fees24h = pnlResult.totalFees;
                 }
 
-                // 3. Local DB Fallback (Always check if we have 0 trades, for Paper Trading reliability)
+                // Local DB fallback for paper trading
                 if (trades24h === 0) {
                     try {
                         const dbPath = `bots/instances/${botName}/data/${botName}.sqlite`;
-                        console.log(`[API /bots] Trying local DB fallback for ${botName}: ${dbPath}`);
-
-                        // Get a fresh server token for this internal request
-                        const serverToken = await getServerToken();
-
+                        const headers = getAuthHeaders(request);
                         const localTradesRes = await axios.get(
                             `${API_URL}/archived-bots/${encodeURIComponent(dbPath)}/trades?limit=1000`,
-                            {
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${serverToken}`
-                                },
-                                validateStatus: () => true
-                            }
+                            { headers, validateStatus: () => true }
                         );
-
-                        console.log(`[API /bots] Local DB response for ${botName}: status=${localTradesRes.status}, trades=${localTradesRes.data?.trades?.length || 0}`);
-
-                        if (localTradesRes.data?.trades && localTradesRes.data.trades.length > 0) {
+                        if (localTradesRes.data?.trades?.length > 0) {
                             const { calculateFIFO } = await import('@/lib/pnl-calculator');
                             const pnlResult = calculateFIFO(localTradesRes.data.trades);
                             pnl24h = pnlResult.totalRealizedPnL;
                             trades24h = pnlResult.totalTrades;
                             volume24h = pnlResult.totalVolume;
                             fees24h = pnlResult.totalFees;
-                            console.log(`[API /bots] Calculated PnL for ${botName}: trades=${trades24h}, pnl=${pnl24h}, volume=${volume24h}, fees=${fees24h}`);
                         }
-                    } catch (err: any) {
-                        console.error(`[API /bots] Local DB fallback error for ${botName}:`, err.message);
-                    }
+                    } catch (err) { }
                 }
             }
 
             const botEntry = {
-                id: run.instance_id || botName,
+                id: run?.instance_id || botName,
                 name: botName,
                 status: isRunning ? 'running' : (isStopped ? 'stopped' : 'error'),
-                type: run.strategy_name || configDetails?.script_file_name?.replace('.py', '') || 'pmm',
-                strategy: configDetails?.script_file_name?.replace('.py', '') || run.strategy_name || 'simple_pmm',
-                exchange: configDetails?.exchange || 'unknown',
-                tradingPair: configDetails?.trading_pair || 'unknown',
+                type: isOrphaned ? 'Orphaned' : (run?.strategy_name || configDetails?.script_file_name?.replace('.py', '') || 'pmm'),
+                strategy: configDetails?.script_file_name?.replace('.py', '') || run?.strategy_name || (isOrphaned ? 'External instance' : 'simple_pmm'),
+                exchange: configDetails?.exchange || (isOrphaned ? 'external' : 'unknown'),
+                tradingPair: configDetails?.trading_pair || (isOrphaned ? 'external' : 'unknown'),
                 performance: {
                     total_pnl: pnl24h,
                     total_trades: trades24h,
                     total_volume: volume24h,
                     total_fees: fees24h,
                     last_error_timestamp: lastErrorTimestamp > 0 ? lastErrorTimestamp : undefined,
-                    log_counts: undefined as { errors: number; warnings: number; infos: number; } | undefined, // Will be populated below
-                    debug_bot_name: botName,
-                    debug_pnl_source: hasOrchestratorData ? 'orchestrator' : (pnl24h !== 0 ? 'calculated' : 'empty')
                 },
                 config: configDetails || {},
-                deployedAt: run.deployed_at,
+                deployedAt: run?.deployed_at,
                 startedAt: dockerContainer?.started_at,
-                runStatus: run.run_status,
-                deploymentStatus: run.deployment_status,
+                isOrphaned,
                 recentlyActive: botStatus?.recently_active || containerIsRunning,
                 containerRunning: containerIsRunning
             };
 
-            // Calculate Log Counts for UI
+            // Calculate Log Counts
             const allLogs = [
                 ...(botStatus?.log_records || []),
                 ...(botStatus?.error_logs || []),
@@ -283,55 +227,69 @@ export async function GET(request: NextRequest) {
             ];
 
             if (allLogs.length > 0) {
-                console.log(`[API /bots] ${botName} has ${allLogs.length} logs`);
-                // Sort logs by timestamp descending (newest first)
-                // Timestamps are usually floats (seconds), verify structure
-                const sortedLogs = allLogs.sort((a: any, b: any) => {
-                    const tA = a.timestamp || 0;
-                    const tB = b.timestamp || 0;
-                    return tB - tA;
-                });
-
+                const sortedLogs = allLogs.sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0));
                 let consecutiveInfos = 0;
-                let totalErrors = 0;
-                let totalWarnings = 0;
-                let totalInfos = 0;
+                let tErrors = 0, tWarnings = 0, tInfos = 0;
 
-                // 1. Calculate consecutive infos from the top (latest)
                 for (const log of sortedLogs) {
-                    const isInfo = log.level_name === 'INFO' || log.level_no === 20;
-                    if (isInfo) {
-                        consecutiveInfos++;
-                    } else {
-                        break; // Stop at first non-info
-                    }
+                    if (log.level_name === 'INFO' || log.level_no === 20) consecutiveInfos++;
+                    else break;
                 }
 
-                // 2. Calculate totals
                 sortedLogs.forEach((log: any) => {
-                    if (log.level_name === 'ERROR' || log.level_no >= 40) totalErrors++;
-                    else if (log.level_name === 'WARNING' || log.level_no === 30) totalWarnings++;
-                    else if (log.level_name === 'INFO' || log.level_no === 20) totalInfos++;
+                    if (log.level_name === 'ERROR' || log.level_no >= 40) tErrors++;
+                    else if (log.level_name === 'WARNING' || log.level_no === 30) tWarnings++;
+                    else if (log.level_name === 'INFO' || log.level_no === 20) tInfos++;
                 });
 
-                // 3. Apply Recovery Logic (User Rule: if consecutive infos > 10, reset error/warning to 0)
-                // Note: User said "> 10" (strictly greater) or ">= 10"?
-                // "If the consecutive infos count > 10 then color-blue" -> > 10.
-                if (consecutiveInfos > 10) {
-                    totalErrors = 0;
-                    totalWarnings = 0;
-                }
-
-                botEntry.performance.log_counts = {
-                    errors: totalErrors,
-                    warnings: totalWarnings,
-                    infos: totalInfos
-                };
-            } else {
-                console.log(`[API /bots] ${botName} has NO log_records. Keys: ${Object.keys(botStatus || {}).join(', ')}`);
+                if (consecutiveInfos > 10) { tErrors = 0; tWarnings = 0; }
+                (botEntry as any).performance.log_counts = { errors: tErrors, warnings: tWarnings, infos: tInfos };
             }
 
             bots.push(botEntry);
+        }
+
+        // --- ADD INTERNAL NEXORA THREADS ---
+        try {
+            const internalStatusRes = await axios.get(`${API_URL}/status`, axiosConfig);
+            const internalStatus = internalStatusRes.data;
+            const orchestratorRunning = internalStatus?.services?.orchestrator === 'running' ||
+                internalStatus?.orchestrator?.last_update ||
+                internalStatus?.orchestrator;
+
+            if (orchestratorRunning) {
+                const startTime = internalStatus?.orchestrator?.last_update || new Date().toISOString();
+                // Add Bybit & OKX Nexora Internal Connectors (as seen in main.py)
+                const internalBots = [
+                    {
+                        id: 'nexora-bybit-sol',
+                        name: 'Internal: Bybit Connector',
+                        status: 'running',
+                        type: 'Nexora Thread',
+                        strategy: 'Orderbook Aggregator',
+                        exchange: 'bybit',
+                        tradingPair: 'SOL/USDT',
+                        performance: { total_pnl: 0, total_trades: 0 },
+                        isNexoraInternal: true,
+                        startedAt: startTime
+                    },
+                    {
+                        id: 'nexora-okx-sol',
+                        name: 'Internal: OKX Connector',
+                        status: 'running',
+                        type: 'Nexora Thread',
+                        strategy: 'Orderbook Aggregator',
+                        exchange: 'okx',
+                        tradingPair: 'SOL/USDT',
+                        performance: { total_pnl: 0, total_trades: 0 },
+                        isNexoraInternal: true,
+                        startedAt: startTime
+                    }
+                ];
+                bots.push(...internalBots);
+            }
+        } catch (e) {
+            console.log('[API /bots] Failed to fetch internal status');
         }
 
         return NextResponse.json(bots);

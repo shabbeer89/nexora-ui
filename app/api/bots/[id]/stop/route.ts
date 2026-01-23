@@ -8,13 +8,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 
-const API_URL = process.env.HUMMINGBOT_API_URL || 'http://localhost:8000';
+const API_URL = process.env.HUMMINGBOT_API_URL || 'http://localhost:8888';
+const API_USER = process.env.HUMMINGBOT_API_USER || 'admin';
+const API_PASS = process.env.HUMMINGBOT_API_PASS || 'admin';
 
 const getAuthHeaders = (request: Request) => {
-    const authHeader = request.headers.get('authorization');
+    // ALWAYS use Basic Auth for upstream calls to the Bot/Hummingbot API
+    const credentials = Buffer.from(`${API_USER}:${API_PASS}`).toString('base64');
     return {
         'Content-Type': 'application/json',
-        ...(authHeader && { 'Authorization': authHeader })
+        'Authorization': `Basic ${credentials}`
     };
 };
 

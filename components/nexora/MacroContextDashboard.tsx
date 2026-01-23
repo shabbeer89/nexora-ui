@@ -31,11 +31,27 @@ export default function MacroContextDashboard() {
     const fetchMacroData = async () => {
         try {
             const response = await fetch('http://localhost:8888/api/macro/context');
+            if (!response.ok) {
+                if (response.status === 403) {
+                    console.warn('Macro data access forbidden - likely needs auth');
+                }
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
             const data = await response.json();
             setMacroData(data);
             setLoading(false);
         } catch (error) {
             console.error('Failed to fetch macro data:', error);
+            // Set mock state on failure to keep UI alive
+            setMacroData({
+                spx: { price: 4780, change: 0, change_percent: 0 },
+                vix: { price: 14, change: 0 },
+                dxy: { price: 102, change: 0 },
+                gold: { price: 2050, change: 0 },
+                correlations: { SPX: 0.5, DXY: -0.5, GOLD: 0, VIX: -0.5 },
+                risk_sentiment: 'neutral',
+                timestamp: new Date().toISOString()
+            });
             setLoading(false);
         }
     };
@@ -82,9 +98,9 @@ export default function MacroContextDashboard() {
                         Global Market Intelligence
                     </p>
                 </div>
-                <div className={`px-4 py-2 rounded-full border ${getRiskSentimentColor(macroData.risk_sentiment)}`}>
+                <div className={`px-4 py-2 rounded-full border ${getRiskSentimentColor(macroData.risk_sentiment || 'neutral')}`}>
                     <span className="text-xs font-black uppercase tracking-wider">
-                        {macroData.risk_sentiment.replace('_', ' ')}
+                        {(macroData.risk_sentiment || 'neutral').replace('_', ' ')}
                     </span>
                 </div>
             </div>
@@ -154,16 +170,16 @@ export default function MacroContextDashboard() {
                     BTC Correlations (30d)
                 </h3>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    {Object.entries(macroData.correlations).map(([asset, corr]) => (
+                    {Object.entries(macroData.correlations || {}).map(([asset, corr]) => (
                         <div key={asset} className="text-center">
                             <div className="text-xs text-slate-400 mb-1">{asset}</div>
-                            <div className={`text-2xl font-black ${getCorrelationColor(corr)}`}>
-                                {corr >= 0 ? '+' : ''}{corr.toFixed(2)}
+                            <div className={`text-2xl font-black ${getCorrelationColor(corr as number)}`}>
+                                {(corr as number) >= 0 ? '+' : ''}{(corr as number).toFixed(2)}
                             </div>
                             <div className="mt-2 h-2 bg-slate-700 rounded-full overflow-hidden">
                                 <div
-                                    className={`h-full ${corr >= 0 ? 'bg-emerald-500' : 'bg-red-500'}`}
-                                    style={{ width: `${Math.abs(corr) * 100}%` }}
+                                    className={`h-full ${(corr as number) >= 0 ? 'bg-emerald-500' : 'bg-red-500'}`}
+                                    style={{ width: `${Math.abs(corr as number) * 100}%` }}
                                 ></div>
                             </div>
                         </div>

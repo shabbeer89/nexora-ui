@@ -6,8 +6,8 @@ import { ClientLayout } from "@/components/layout/ClientLayout";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "He Bot",
-  description: "Professional Trading Dashboard",
+  title: "Nexora Mission Control",
+  description: "Advanced AI-Driven Trading Infrastructure",
 };
 
 export default function RootLayout({

@@ -46,8 +46,8 @@ export default function DrawdownTracker() {
         );
     }
 
-    const drawdownPct = data.current_drawdown * 100;
-    const maxDrawdownPct = data.max_drawdown * 100;
+    const drawdownPct = (data?.current_drawdown || 0) * 100;
+    const maxDrawdownPct = (data?.max_drawdown || 0) * 100;
     const isWarning = drawdownPct > 10;
     const isCritical = drawdownPct > 20;
 
@@ -82,11 +82,11 @@ export default function DrawdownTracker() {
                         -{drawdownPct.toFixed(2)}%
                     </div>
                     <div className="text-sm text-slate-400">
-                        From peak: ${data.peak_equity.toFixed(2)}
+                        From peak: ${data?.peak_equity?.toFixed(2) || '0.00'}
                     </div>
                     {data.in_drawdown && (
                         <div className="mt-4 text-xs text-yellow-400">
-                            Duration: {data.drawdown_duration_hours.toFixed(1)} hours
+                            Duration: {data?.drawdown_duration_hours?.toFixed(1) || '0.0'} hours
                         </div>
                     )}
                 </div>
@@ -105,11 +105,11 @@ export default function DrawdownTracker() {
             <div className="grid grid-cols-2 gap-4">
                 <div className="bg-slate-800/50 border border-white/5 rounded-xl p-4">
                     <div className="text-xs text-slate-400 mb-1">Peak Equity</div>
-                    <div className="text-2xl font-black text-emerald-400">${data.peak_equity.toFixed(2)}</div>
+                    <div className="text-2xl font-black text-emerald-400">${data?.peak_equity?.toFixed(2) || '0.00'}</div>
                 </div>
                 <div className="bg-slate-800/50 border border-white/5 rounded-xl p-4">
                     <div className="text-xs text-slate-400 mb-1">Current Equity</div>
-                    <div className="text-2xl font-black text-white">${data.current_equity.toFixed(2)}</div>
+                    <div className="text-2xl font-black text-white">${data?.current_equity?.toFixed(2) || '0.00'}</div>
                 </div>
             </div>
 

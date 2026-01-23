@@ -49,8 +49,22 @@ export function OrderBook({
                 setBids([]);
                 setAsks([]);
             } else if (response.data) {
-                setBids(response.data.bids || []);
-                setAsks(response.data.asks || []);
+                // Normalize bids/asks (handle both [[price, amount], ...] and [{price, amount}, ...])
+                const normalize = (levels: any[]): OrderBookLevel[] => {
+                    if (!Array.isArray(levels)) return [];
+                    return levels.filter(l => l !== null && l !== undefined).map(l => {
+                        if (Array.isArray(l)) {
+                            return { price: Number(l[0]) || 0, amount: Number(l[1]) || 0 };
+                        }
+                        return {
+                            price: Number(l.price) || 0,
+                            amount: Number(l.amount) || Number(l.quantity) || 0
+                        };
+                    });
+                };
+
+                setBids(normalize(response.data.bids));
+                setAsks(normalize(response.data.asks));
                 setError(null);
             }
         } catch (err: any) {
@@ -79,7 +93,9 @@ export function OrderBook({
     const spreadPercent = bestBid > 0 ? (spread / bestBid) * 100 : 0;
 
     const renderLevel = (level: OrderBookLevel, side: 'bid' | 'ask', index: number) => {
-        const percentage = (level.amount / maxAmount) * 100;
+        const amount = level?.amount || 0;
+        const price = level?.price || 0;
+        const percentage = (amount / maxAmount) * 100;
 
         return (
             <div
@@ -100,13 +116,13 @@ export function OrderBook({
 
                 {side === 'bid' ? (
                     <>
-                        <span className="text-gray-400 z-10">{level.amount.toFixed(4)}</span>
-                        <span className="text-green-400 font-mono z-10">{level.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        <span className="text-gray-400 z-10">{amount.toFixed(4)}</span>
+                        <span className="text-green-400 font-mono z-10">{price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                     </>
                 ) : (
                     <>
-                        <span className="text-red-400 font-mono z-10">{level.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                        <span className="text-gray-400 z-10">{level.amount.toFixed(4)}</span>
+                        <span className="text-red-400 font-mono z-10">{price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        <span className="text-gray-400 z-10">{amount.toFixed(4)}</span>
                     </>
                 )}
             </div>
