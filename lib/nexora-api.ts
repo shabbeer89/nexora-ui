@@ -218,6 +218,38 @@ class NexoraAPIClient {
     async getRiskAlerts() {
         return this.get<{ alerts: RiskAlert[] }>('/risk/alerts');
     }
+
+    // Analytics
+    async getRecentTrades(limit: number = 100): Promise<{ trades: any[] }> {
+        return this.get<{ trades: any[] }>(`/api/analytics/trades?limit=${limit}`);
+    }
+
+    async getRiskAssessment() {
+        return this.get<any>('/risk');
+    }
+
+    async getAnalyticsPerformance() {
+        return this.get<any>('/api/analytics/performance');
+    }
+
+    // Orders (Standard + Advanced)
+    async getUnifiedOrders(): Promise<{ standard: any[], advanced: any[], total_count: number }> {
+        return this.get<{ standard: any[], advanced: any[], total_count: number }>('/api/unified-orders');
+    }
+
+    async getAdvancedOrders(): Promise<{ orders: any[] }> {
+        return this.get<{ orders: any[] }>('/api/orders/advanced');
+    }
+
+    async submitAdvancedOrder(orderData: {
+        type: string;
+        symbol: string;
+        side: string;
+        size: number;
+        duration: number;
+    }) {
+        return this.post<any>('/api/orders/advanced', orderData);
+    }
 }
 
 // Export singleton instance

@@ -20,9 +20,9 @@ export async function POST(request: Request) {
     try {
         const body = await request.json();
 
-        // Forward to Hummingbot API
+        // Forward to Nexora Bot API
         const response = await axios.post(
-            `${API_URL}/backtesting/run-backtesting`,
+            `${API_URL}/api/backtesting/run`,
             body,
             { headers: getAuthHeaders(request) }
         );

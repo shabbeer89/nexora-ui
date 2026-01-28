@@ -68,32 +68,11 @@ export default function NexoraLayout({
                 </header>
 
                 {/* Main Stage */}
-                <main className="relative z-10 max-w-[1600px] mx-auto px-8 py-10">
-                    {children}
-                </main>
-
-                {/* Strategic Footer */}
-                <footer className="relative z-10 mt-20 border-t border-white/5 bg-slate-950/80 backdrop-blur-xl">
-                    <div className="max-w-[1600px] mx-auto px-8 py-12">
-                        <div className="flex flex-col md:flex-row justify-between items-center gap-8">
-                            <div className="flex items-center gap-4">
-                                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Core Engine v1.0.42-STABLE</div>
-                                <div className="w-1 h-1 rounded-full bg-slate-700"></div>
-                                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest text-cyan-500/80">CEX: SOL-Trend-AI</div>
-                                <div className="w-1 h-1 rounded-full bg-slate-700"></div>
-                                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest text-purple-500/80">DEX: USDC-SOL-Yield</div>
-                            </div>
-
-                            <div className="flex items-center gap-8 text-[10px] font-black uppercase tracking-[0.2em]">
-                                <a href="/docs" target="_blank" className="text-slate-500 hover:text-cyan-400 transition-colors">Documentation</a>
-                                <a href="#" className="text-slate-500 hover:text-white transition-colors">Protocol Status</a>
-                                <div className="px-4 py-2 border border-white/10 rounded-full bg-white/5 text-slate-400">
-                                    Local Node: <span className="text-white">Active</span>
-                                </div>
-                            </div>
-                        </div>
+                <main className="relative z-10 flex-1 overflow-y-auto">
+                    <div className="max-w-[1600px] mx-auto px-8 py-10">
+                        {children}
                     </div>
-                </footer>
+                </main>
             </div>
         </div>
     );

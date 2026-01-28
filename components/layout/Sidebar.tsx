@@ -48,6 +48,7 @@ import { clearTokens } from '@/lib/backend-api';
 import { useStore } from '@/store/useStore';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import BottomDrawer from './BottomDrawer';
 
 export type TabType =
     | 'overview' | 'portfolio' | 'strategies' | 'risk' | 'engines'
@@ -127,7 +128,7 @@ export default function Sidebar({ activeTab, setActiveTab, isExpanded, setIsExpa
                 { href: '/nexora/orchestration', label: 'Trading Bots', icon: Brain, color: 'text-emerald-400' },
                 { href: '/nexora/manual', label: 'Manual Trade', icon: ArrowUpDown, color: 'text-slate-400' },
                 { id: 'trades', label: 'Active Trades', icon: Briefcase, color: 'text-blue-400' },
-                { id: 'orders', label: 'Advanced Orders', icon: GanttChartSquare, color: 'text-indigo-400' },
+                { id: 'orders', label: 'Orders', icon: GanttChartSquare, color: 'text-indigo-400' },
                 { id: 'terminal', label: 'System Terminal', icon: Terminal, color: 'text-blue-500' },
             ]
         },
@@ -144,7 +145,7 @@ export default function Sidebar({ activeTab, setActiveTab, isExpanded, setIsExpa
         {
             label: "Finance & Performance",
             items: [
-                { href: '/nexora/portfolio-global', label: 'Total Portfolio', icon: Wallet, color: 'text-emerald-500' },
+                { id: 'portfolio', label: 'Total Portfolio', icon: Wallet, color: 'text-emerald-500' },
                 { href: '/nexora/capital', label: 'Capital Manager', icon: TrendingUp, color: 'text-blue-500' },
                 { href: '/nexora/funding', label: 'Funding Rates', icon: Percent, color: 'text-purple-400' },
                 { id: 'analytics', label: 'Analytics', icon: BarChart3, color: 'text-cyan-400' },
@@ -279,97 +280,12 @@ export default function Sidebar({ activeTab, setActiveTab, isExpanded, setIsExpa
                 ))}
             </div>
 
-            {/* Footer / Status Area */}
-            <div className={cn("mt-auto flex flex-col border-t border-white/5 bg-slate-950/50 transition-all", isExpanded ? "p-4" : "p-2 items-center")}>
-                {/* User Section */}
-                <div className="mb-4 w-full">
-                    <button
-                        onClick={() => setActiveTab('overview')} // Or settings if implemented
-                        className={cn(
-                            "w-full flex items-center rounded-xl transition-all hover:bg-white/[0.05] group",
-                            isExpanded ? "px-4 py-3 gap-3" : "justify-center p-3"
-                        )}
-                    >
-                        <UserCircle className="w-5 h-5 text-slate-400 group-hover:text-white" />
-                        {isExpanded && (
-                            <div className="flex-1 text-left">
-                                <p className="text-[10px] font-black text-white uppercase tracking-tight">Operator Instance</p>
-                                <p className="text-[9px] font-mono text-slate-500 truncate">ID: NX-8842-A</p>
-                            </div>
-                        )}
-                    </button>
-
-                    <button
-                        onClick={handleLogout}
-                        className={cn(
-                            "w-full flex items-center rounded-xl transition-all hover:bg-red-500/10 group mt-1",
-                            isExpanded ? "px-4 py-3 gap-3" : "justify-center p-3 text-red-500"
-                        )}
-                    >
-                        <LogOut className={cn("w-5 h-5", isExpanded ? "text-slate-400 group-hover:text-red-500" : "text-red-500")} />
-                        {isExpanded && (
-                            <span className="text-[10px] font-black text-slate-400 group-hover:text-red-500 uppercase tracking-widest">Terminate Session</span>
-                        )}
-                    </button>
-
-                    {/* Integrated System Controls */}
-                    <div className="mt-4 pt-4 border-t border-white/5 space-y-1">
-                        <button
-                            onClick={() => router.push('/settings')}
-                            className={cn(
-                                "w-full flex items-center rounded-xl transition-all hover:bg-white/[0.05] group",
-                                isExpanded ? "px-4 py-3 gap-3" : "justify-center p-3",
-                                pathname === '/settings' ? "bg-white/5 text-white" : "text-slate-500 hover:text-slate-300"
-                            )}
-                        >
-                            <Settings className={cn("w-5 h-5", pathname === '/settings' ? "text-cyan-500" : "text-slate-500 group-hover:text-white")} />
-                            {isExpanded && <span className="text-[10px] font-black uppercase tracking-widest">System Settings</span>}
-                        </button>
-
-                        <button
-                            onClick={() => router.push('/settings/accounts')}
-                            className={cn(
-                                "w-full flex items-center rounded-xl transition-all hover:bg-white/[0.05] group",
-                                isExpanded ? "px-4 py-3 gap-3" : "justify-center p-3",
-                                pathname === '/settings/accounts' ? "bg-white/5 text-white" : "text-slate-500 hover:text-slate-300"
-                            )}
-                        >
-                            <Key className={cn("w-5 h-5", pathname === '/settings/accounts' ? "text-blue-500" : "text-slate-500 group-hover:text-white")} />
-                            {isExpanded && <span className="text-[10px] font-black uppercase tracking-widest">API Connectivity</span>}
-                        </button>
-                    </div>
-                </div>
-
-                {isExpanded ? (
-                    <div className="animate-in fade-in duration-300">
-                        <div className="flex items-center justify-between mb-4 px-2">
-                            <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                <span className="text-[10px] font-black text-emerald-500/80 tracking-widest uppercase">Nodes: OK</span>
-                            </div>
-                            <span className="text-[10px] font-mono text-slate-600">v1.2.4</span>
-                        </div>
-                        <button
-                            onClick={() => setActiveTab('emergency')}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-600/10 hover:bg-red-600/20 border border-red-600/20 rounded-xl text-red-500 text-[10px] font-black uppercase tracking-widest transition-all"
-                        >
-                            <AlertTriangle className="w-4 h-4" />
-                            Global Emergency
-                        </button>
-                    </div>
-                ) : (
-                    <div className="flex flex-col items-center gap-4 py-2">
-                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="Nodes: OK" />
-                        <button
-                            onClick={() => setActiveTab('emergency')}
-                            className="p-3 bg-red-600/10 hover:bg-red-600/20 border border-red-600/20 rounded-xl text-red-500 transition-all"
-                            title="Global Emergency"
-                        >
-                            <AlertTriangle className="w-4 h-4" />
-                        </button>
-                    </div>
-                )}
-            </div>
+            {/* Bottom Drawer */}
+            <BottomDrawer
+                isExpanded={isExpanded}
+                handleLogout={handleLogout}
+                setActiveTab={setActiveTab}
+            />
         </aside>
     );
 }

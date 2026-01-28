@@ -1,10 +1,11 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { WebSocketClient } from '../lib/websocket-client';
 
 // Singleton WebSocket instance
 let wsInstance: WebSocketClient | null = null;
 
 export function useWebSocket(url: string) {
+    const [isConnected, setIsConnected] = useState(false);
     const wsRef = useRef<WebSocketClient | null>(null);
 
     useEffect(() => {
@@ -15,6 +16,11 @@ export function useWebSocket(url: string) {
 
         wsRef.current = wsInstance;
         wsRef.current.connect();
+
+        // Listen for connection changes
+        const unsubscribeConn = wsRef.current.onConnectionChange((connected) => {
+            setIsConnected(connected);
+        });
 
         // Handle token refresh events
         const handleTokenRefresh = (event: CustomEvent) => {
@@ -31,8 +37,7 @@ export function useWebSocket(url: string) {
         // Cleanup on unmount
         return () => {
             window.removeEventListener('tokenRefreshed', handleTokenRefresh as EventListener);
-            // Don't disconnect on unmount - keep singleton alive
-            // Only disconnect when user logs out or app closes
+            unsubscribeConn();
         };
     }, [url]);
 
@@ -44,5 +49,5 @@ export function useWebSocket(url: string) {
         return wsRef.current?.onMessage(handler) ?? (() => { });
     }, []);
 
-    return { send, onMessage };
+    return { send, onMessage, isConnected };
 }

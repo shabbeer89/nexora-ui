@@ -5,6 +5,7 @@ import { LiveOrderBook } from './LiveOrderBook';
 import { TradeExecutionFeed } from './TradeExecutionFeed';
 import { Zap, Target, ShieldAlert, BarChart3, ArrowUpRight, ArrowDownRight, Wallet, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { nexoraAPI } from '@/lib/nexora-api';
 import { backendApi } from '@/lib/backend-api';
 import { toast } from 'sonner';
 
@@ -37,8 +38,7 @@ export default function TradingCockpit({ symbol }: TradingCockpitProps) {
     useEffect(() => {
         const fetchBalance = async () => {
             try {
-                const response = await fetch('http://localhost:8888/api/portfolio');
-                const data = await response.json();
+                const data = await nexoraAPI.getPortfolio();
                 setBalance(data.total_value_usd || 0);
             } catch (err) {
                 console.error('Failed to fetch balance:', err);
@@ -53,8 +53,7 @@ export default function TradingCockpit({ symbol }: TradingCockpitProps) {
     useEffect(() => {
         const fetchTrades = async () => {
             try {
-                const response = await fetch('http://localhost:8888/api/trades?limit=5');
-                const data = await response.json();
+                const data = await nexoraAPI.getRecentTrades(5);
                 setRecentTrades(data.trades || []);
             } catch (err) {
                 console.error('Failed to fetch trades:', err);
@@ -69,8 +68,7 @@ export default function TradingCockpit({ symbol }: TradingCockpitProps) {
     useEffect(() => {
         const fetchRisk = async () => {
             try {
-                const response = await fetch('http://localhost:8888/api/risk/assessment');
-                const data = await response.json();
+                const data = await nexoraAPI.getRiskAssessment();
                 setRiskData(data);
             } catch (err) {
                 console.error('Failed to fetch risk data:', err);

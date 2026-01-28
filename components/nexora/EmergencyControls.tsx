@@ -1,22 +1,97 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AlertTriangle, Power, PauseCircle, PlayCircle, RefreshCw, XCircle } from 'lucide-react';
+import { getAccessToken } from '@/lib/backend-api';
 
 export default function EmergencyControls() {
     const [showConfirm, setShowConfirm] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const [systemStatus, setSystemStatus] = useState<string>('Unknown');
+    const [isPolling, setIsPolling] = useState(false);
+
+    const fetchSystemStatus = async () => {
+        try {
+            const token = getAccessToken();
+            if (!token) {
+                setSystemStatus('Authentication Required');
+                return;
+            }
+
+            const response = await fetch(`http://localhost:8888/api/system/status`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(`HTTP ${response.status}: ${errorData.detail || response.statusText}`);
+            }
+
+            const data = await response.json();
+            setSystemStatus(data.status || 'Unknown');
+        } catch (error) {
+            console.error('Failed to fetch system status:', error);
+            setSystemStatus('Error');
+        }
+    };
+
+    useEffect(() => {
+        // Initial fetch
+        fetchSystemStatus();
+
+        // Set up polling
+        const intervalId = setInterval(fetchSystemStatus, 5000); // Poll every 5 seconds
+        setIsPolling(true);
+
+        // Cleanup on unmount
+        return () => {
+            clearInterval(intervalId);
+            setIsPolling(false);
+        };
+    }, []); // Empty dependency array means it runs once on mount and cleans up on unmount
 
     const executeAction = async (action: string) => {
         setLoading(true);
         try {
-            const response = await fetch(`http://localhost:8888/api/system/${action}`, {
+            // Get authentication token
+            const token = getAccessToken();
+            if (!token) {
+                throw new Error('Authentication required. Please log in again.');
+            }
+
+            // Map UI actions to backend endpoints
+            const endpointMap: Record<string, string> = {
+                'emergency-shutdown': 'shutdown',
+                'pause-trading': 'pause',
+                'resume-trading': 'resume',
+                'force-exit-all': 'shutdown',      // Maps to shutdown (closes positions)
+                'reload-config': 'reload-config',  // May need backend implementation
+                'system-restart': 'restart'        // May need backend implementation
+            };
+
+            const endpoint = endpointMap[action] || action;
+            const response = await fetch(`http://localhost:8888/api/system/${endpoint}`, {
                 method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
             });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(`HTTP ${response.status}: ${errorData.detail || response.statusText}`);
+            }
+
             const data = await response.json();
-            alert(`${action} executed successfully`);
+            alert(`✅ ${action} executed successfully!\n\n${data.message || JSON.stringify(data)}`);
+            fetchSystemStatus(); // Refresh status after action
         } catch (error) {
-            alert(`Failed to execute ${action}: ${error}`);
+            console.error(`Failed to execute ${action}:`, error);
+            alert(`❌ Failed to execute ${action}:\n\n${error instanceof Error ? error.message : String(error)}`);
         } finally {
             setLoading(false);
             setShowConfirm(null);
@@ -60,6 +135,45 @@ export default function EmergencyControls() {
                 <div>
                     <h2 className="text-2xl font-black text-white">Emergency Controls</h2>
                     <p className="text-xs text-slate-400 font-mono">System Override Commands</p>
+                </div>
+            </div>
+
+            {/* System Status Banner */}
+            <div className={`rounded-2xl p-4 mb-6 border-2 transition-all ${systemStatus === 'running' ? 'bg-emerald-500/10 border-emerald-500/30' :
+                    systemStatus === 'paused' ? 'bg-yellow-500/10 border-yellow-500/30' :
+                        systemStatus === 'shutdown' ? 'bg-red-500/10 border-red-500/30' :
+                            'bg-slate-500/10 border-slate-500/30'
+                }`}>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className={`w-3 h-3 rounded-full animate-pulse ${systemStatus === 'running' ? 'bg-emerald-500' :
+                                systemStatus === 'paused' ? 'bg-yellow-500' :
+                                    systemStatus === 'shutdown' ? 'bg-red-500' :
+                                        'bg-slate-500'
+                            }`} />
+                        <div>
+                            <div className="text-sm font-black text-white uppercase tracking-wider">
+                                System Status
+                            </div>
+                            <div className={`text-xs font-mono ${systemStatus === 'running' ? 'text-emerald-400' :
+                                    systemStatus === 'paused' ? 'text-yellow-400' :
+                                        systemStatus === 'shutdown' ? 'text-red-400' :
+                                            'text-slate-400'
+                                }`}>
+                                {systemStatus === 'running' ? '● RUNNING - All systems operational' :
+                                    systemStatus === 'paused' ? '⏸ PAUSED - Trading halted' :
+                                        systemStatus === 'shutdown' ? '⏹ SHUTDOWN - System offline' :
+                                            `⚠ ${systemStatus.toUpperCase()}`}
+                            </div>
+                        </div>
+                    </div>
+                    <button
+                        onClick={fetchSystemStatus}
+                        className="px-3 py-1 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-mono text-slate-400 hover:text-white transition-colors"
+                        title="Refresh status"
+                    >
+                        Refresh
+                    </button>
                 </div>
             </div>
 

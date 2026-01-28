@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, Target, AlertTriangle, Award, BarChart3 } from 'lucide-react';
+import { nexoraAPI } from '@/lib/nexora-api';
 
 interface PerformanceMetrics {
     total_return: number;
@@ -31,14 +32,7 @@ export default function PerformanceAnalytics() {
 
     const fetchMetrics = async () => {
         try {
-            const response = await fetch('http://localhost:8888/api/analytics/performance');
-            if (!response.ok) {
-                if (response.status === 403) {
-                    console.warn('Performance metrics access forbidden');
-                }
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const data = await response.json();
+            const data = await nexoraAPI.getAnalyticsPerformance();
             setMetrics(data);
             setLoading(false);
         } catch (error) {

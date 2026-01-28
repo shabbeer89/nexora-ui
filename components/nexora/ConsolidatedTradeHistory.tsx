@@ -14,7 +14,7 @@ import {
     Activity
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { backendApi } from '@/lib/backend-api';
+import { nexoraAPI } from '@/lib/nexora-api';
 
 interface PastTrade {
     trade_id: string;
@@ -45,8 +45,8 @@ export default function ConsolidatedTradeHistory() {
 
     const fetchHistory = async () => {
         try {
-            const response = await backendApi.get('/analytics/trades?limit=500');
-            setTrades(response.data.trades || []);
+            const data = await nexoraAPI.getRecentTrades(500);
+            setTrades(data.trades || []);
             setLoading(false);
         } catch (error) {
             console.error('Failed to fetch trade history:', error);
