@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
  * Automatically refreshes both access and refresh tokens.
  */
 
-const API_URL = process.env.NEXORA_API_URL || 'http://localhost:8888';
+const API_URL = process.env.HUMMINGBOT_API_URL || process.env.NEXORA_API_URL || 'http://localhost:8888';
 
 export async function POST(request: NextRequest) {
     try {
