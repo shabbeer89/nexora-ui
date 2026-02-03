@@ -1,10 +1,13 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import FleetOrchestration from '@/components/nexora/FleetOrchestration';
 import { LayoutGrid, Globe, Activity, Terminal } from 'lucide-react';
 
 export default function NexoraOrchestrationPage() {
+    const router = useRouter();
+
     return (
         <div className="space-y-8">
             {/* Management Header */}
@@ -32,7 +35,10 @@ export default function NexoraOrchestrationPage() {
             <div className="relative min-h-[600px] border border-white/5 bg-slate-950/40 backdrop-blur-xl rounded-[2.5rem] p-8 shadow-2xl overflow-hidden group/container">
                 <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-cyan-500/5 rounded-full blur-[120px] -mr-32 -mt-32"></div>
 
-                <FleetOrchestration />
+                <FleetOrchestration
+                    onSelectBot={(id: string) => router.push(`/nexora/engines/${id}`)}
+                    onCreateNew={() => router.push('/nexora/engines/new')}
+                />
 
                 {/* Footer Telemetry */}
                 <div className="mt-8 pt-8 border-t border-white/5 flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-slate-500">

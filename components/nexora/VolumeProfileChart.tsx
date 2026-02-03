@@ -4,7 +4,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell } from 'recharts';
 
 interface VolumeProfileData {
     price: number;
@@ -74,11 +74,14 @@ export function VolumeProfileChart() {
                             <XAxis type="number" />
                             <YAxis type="number" dataKey="price" />
                             <Tooltip />
-                            <Bar
-                                dataKey="volume"
-                                fill="#8884d8"
-                                fillOpacity={(entry) => entry.isPOC ? 1 : entry.isVA ? 0.7 : 0.4}
-                            />
+                            <Bar dataKey="volume" fill="#8884d8">
+                                {data.map((entry, index) => (
+                                    <Cell
+                                        key={`cell-${index}`}
+                                        fillOpacity={entry.isPOC ? 1 : entry.isVA ? 0.7 : 0.4}
+                                    />
+                                ))}
+                            </Bar>
                             <ReferenceLine y={poc} stroke="red" strokeWidth={2} label="POC" />
                             <ReferenceLine y={vwap} stroke="blue" strokeWidth={2} label="VWAP" />
                         </BarChart>

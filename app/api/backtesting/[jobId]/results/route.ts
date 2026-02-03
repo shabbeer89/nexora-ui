@@ -10,11 +10,12 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888';
  */
 export async function GET(
     request: Request,
-    { params }: { params: { jobId: string } }
+    { params }: { params: Promise<{ jobId: string }> }
 ) {
     try {
+        const { jobId } = await params;
         const response = await axios.get(
-            `${API_URL}/api/backtesting/${params.jobId}/results`
+            `${API_URL}/api/backtesting/${jobId}/results`
         );
 
         return NextResponse.json(response.data);

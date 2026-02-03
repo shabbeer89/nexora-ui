@@ -35,7 +35,7 @@ export default function NexoraChartsPage() {
                 <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent"></div>
 
                 <div className="w-full h-full p-4">
-                    <PriceChart symbol="BTC-USDT" />
+                    <PriceChart tradingPair="BTC-USDT" />
                 </div>
 
                 {/* Status Overlay */}

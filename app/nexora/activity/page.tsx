@@ -82,7 +82,6 @@ const eventColors: Record<EventType, string> = {
     bot_started: "bg-green-500/10 text-green-500 border-green-500/20",
     bot_stopped: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
     bot_error: "bg-red-500/10 text-red-500 border-red-500/20",
-    bot_error: "bg-red-500/10 text-red-500 border-red-500/20",
     config_changed: "bg-purple-500/10 text-purple-500 border-purple-500/20",
     info: "bg-slate-500/10 text-slate-400 border-slate-500/20",
 };
