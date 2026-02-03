@@ -129,6 +129,7 @@ export default function Sidebar({ activeTab, setActiveTab, isExpanded, setIsExpa
                 { href: '/nexora/manual', label: 'Manual Trade', icon: ArrowUpDown, color: 'text-slate-400' },
                 { id: 'trades', label: 'Active Trades', icon: Briefcase, color: 'text-blue-400' },
                 { id: 'orders', label: 'Orders', icon: GanttChartSquare, color: 'text-indigo-400' },
+                { href: '/nexora/scenarios', label: 'Multi-Bot Scenarios', icon: Layers, color: 'text-cyan-400' },
                 { id: 'terminal', label: 'System Terminal', icon: Terminal, color: 'text-blue-500' },
             ]
         },
@@ -163,6 +164,7 @@ export default function Sidebar({ activeTab, setActiveTab, isExpanded, setIsExpa
         {
             label: "Operations",
             items: [
+                { href: '/nexora/health', label: 'System Health', icon: Activity, color: 'text-emerald-500' },
                 { href: '/nexora/connectors', label: 'Exchange Links', icon: Plug, color: 'text-blue-400' },
                 { href: '/nexora/docker', label: 'Docker Control', icon: Container, color: 'text-cyan-600' },
                 { id: 'alerts', label: 'System Alerts', icon: Bell, color: 'text-amber-400' },
