@@ -142,15 +142,7 @@ export const useStore = create<AppState>((set, get) => ({
     connectSocket: () => {
         if (get().mqttClient) return;
 
-        // Skip MQTT connection if using Cloudflare tunnel (no WebSocket support)
         const mqttUrl = process.env.NEXT_PUBLIC_MQTT_URL || 'ws://localhost:8083/mqtt';
-        if (mqttUrl.includes('trycloudflare.com')) {
-            console.log('[Store] ⚠️ MQTT disabled - Cloudflare tunnel does not support WebSocket');
-            console.log('[Store] Using HTTP polling for updates instead');
-            get().startPolling();
-            return;
-        }
-
         console.log(`[Store] Connecting to MQTT Broker (${mqttUrl})...`);
         const client = mqtt.connect(mqttUrl, {
             keepalive: 60,

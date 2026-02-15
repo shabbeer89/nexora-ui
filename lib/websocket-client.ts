@@ -39,12 +39,6 @@ export class WebSocketClient {
      * Connect to WebSocket server with authentication token
      */
     connect(tokenOverride?: string): void {
-        // Skip WebSocket if using Cloudflare tunnel (no WebSocket support)
-        if (this.config.url.includes('trycloudflare.com')) {
-            console.log('[WS] ⚠️ WebSocket disabled - Cloudflare tunnel does not support WebSocket');
-            return;
-        }
-
         // Prevent duplicate connections
         if (this.ws?.readyState === WebSocket.OPEN) {
             console.log('[WS] Already connected');

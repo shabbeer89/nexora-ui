@@ -135,14 +135,14 @@ export default function UnifiedPortfolio() {
                                     <div>
                                         <div className="text-xs text-gray-400 mb-1">Venues</div>
                                         <div className="text-lg font-black text-cyan-400 font-mono">
-                                            {portfolio.orchestrator.venues.length}
+                                            {portfolio.orchestrator.venues?.length || 0}
                                         </div>
                                     </div>
                                     <div className="col-span-2">
                                         <div className="flex flex-wrap gap-2 mt-2">
-                                            {portfolio.orchestrator.venues.map(v => (
+                                            {portfolio.orchestrator.venues?.map(v => (
                                                 <span key={v} className="px-2 py-1 bg-white/5 rounded-md text-[9px] font-mono text-gray-400 border border-white/5">{v}</span>
-                                            ))}
+                                            )) || <span className="text-[9px] text-gray-500">No venues configured</span>}
                                         </div>
                                     </div>
                                 </div>
