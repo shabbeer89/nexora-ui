@@ -23,12 +23,6 @@ export default function TradeManagerUI() {
     const [trades, setTrades] = useState<ActiveTrade[]>([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        fetchTrades();
-        const interval = setInterval(fetchTrades, 5000); // Update every 5s
-        return () => clearInterval(interval);
-    }, []);
-
     const fetchTrades = async () => {
         try {
             const response = await fetch('http://localhost:8888/api/trades/active');
@@ -40,6 +34,12 @@ export default function TradeManagerUI() {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchTrades();
+        const interval = setInterval(fetchTrades, 5000); // Update every 5s
+        return () => clearInterval(interval);
+    }, []);
 
     const forceExit = async (tradeId: string) => {
         if (!confirm('Force exit this trade?')) return;

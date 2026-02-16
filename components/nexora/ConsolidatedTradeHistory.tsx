@@ -39,10 +39,6 @@ export default function ConsolidatedTradeHistory() {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterSide, setFilterSide] = useState<string>('ALL');
 
-    useEffect(() => {
-        fetchHistory();
-    }, []);
-
     const fetchHistory = async () => {
         try {
             const data = await nexoraAPI.getRecentTrades(500);
@@ -53,6 +49,10 @@ export default function ConsolidatedTradeHistory() {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchHistory();
+    }, []);
 
     const filteredTrades = trades.filter(trade => {
         const matchesSearch =

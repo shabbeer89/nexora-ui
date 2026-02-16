@@ -165,10 +165,10 @@ export async function GET(
         });
 
         // Use results from calculator
-        let totalRealizedPnL = pnlResult.totalRealizedPnL;
-        let winningTrades = pnlResult.winningTrades;
-        let losingTrades = pnlResult.losingTrades;
-        let totalFees = pnlResult.totalFees;
+        const totalRealizedPnL = pnlResult.totalRealizedPnL;
+        const winningTrades = pnlResult.winningTrades;
+        const losingTrades = pnlResult.losingTrades;
+        const totalFees = pnlResult.totalFees;
 
         // Apply time range filter
         const timeCutoff = getTimeRangeCutoff(timeRange);

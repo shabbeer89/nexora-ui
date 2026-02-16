@@ -44,12 +44,6 @@ export default function AdvancedOrdersUI() {
     const [deleteModal, setDeleteModal] = useState<{ show: boolean; order: AdvancedOrder | null }>({ show: false, order: null });
     const [isDeleting, setIsDeleting] = useState(false);
 
-    useEffect(() => {
-        fetchOrders();
-        const interval = setInterval(fetchOrders, 5000);
-        return () => clearInterval(interval);
-    }, []);
-
     const fetchOrders = async () => {
         try {
             const data = await nexoraAPI.getUnifiedOrders();
@@ -59,6 +53,12 @@ export default function AdvancedOrdersUI() {
             console.error('Failed to fetch orders:', error);
         }
     };
+
+    useEffect(() => {
+        fetchOrders();
+        const interval = setInterval(fetchOrders, 5000);
+        return () => clearInterval(interval);
+    }, []);
 
     const submitOrder = async () => {
         try {

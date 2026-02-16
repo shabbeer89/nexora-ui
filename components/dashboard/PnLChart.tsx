@@ -89,7 +89,7 @@ export function PnLChart({
                                         className="bg-slate-700 rounded-t animate-pulse"
                                         style={{
                                             width: '8%',
-                                            height: `${30 + Math.random() * 50}%`,
+                                            height: `${30 + ((i * 13) % 50)}%`,
                                             animationDelay: `${i * 100}ms`
                                         }}
                                     />

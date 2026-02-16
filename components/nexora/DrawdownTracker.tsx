@@ -17,12 +17,6 @@ export default function DrawdownTracker() {
     const [data, setData] = useState<DrawdownData | null>(null);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        fetchData();
-        const interval = setInterval(fetchData, 10000);
-        return () => clearInterval(interval);
-    }, []);
-
     const fetchData = async () => {
         try {
             const response = await fetch('http://localhost:8888/api/analytics/drawdown');
@@ -34,6 +28,12 @@ export default function DrawdownTracker() {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchData();
+        const interval = setInterval(fetchData, 10000);
+        return () => clearInterval(interval);
+    }, []);
 
     if (loading || !data) {
         return (

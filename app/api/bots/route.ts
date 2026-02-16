@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
         console.log(`[API /bots] Found ${Object.keys(runningBots).length} running bots in orchestrator status`);
 
         // 3. Get Docker container statuses for accurate running detection
-        let dockerContainers: Record<string, any> = {};
+        const dockerContainers: Record<string, any> = {};
         try {
             const dockerResponse = await axios.get(`${API_URL}/docker/active-containers`, axiosConfig);
             if (Array.isArray(dockerResponse.data)) {
@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
             if (run?.deployment_status === 'ARCHIVED') continue;
 
             // Start with 'stopped' status if not found in orchestrator
-            let botStatus = runningBots[botName] || { status: 'stopped', performance: {} };
+            const botStatus = runningBots[botName] || { status: 'stopped', performance: {} };
 
             // Check Docker container status directly for accurate status
             const dockerContainer = dockerContainers[botName];

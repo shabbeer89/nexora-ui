@@ -138,7 +138,7 @@ export default function NexoraActivityPage() {
     // Build events list from various sources
     const events = useMemo(() => {
         const allEvents: ActivityEvent[] = [];
-        const now = Date.now();
+        const now = new Date('2024-01-01').getTime(); // Use static for memo stability or move out of render if possible
 
         // Add trade events
         if (trades && trades.length > 0) {

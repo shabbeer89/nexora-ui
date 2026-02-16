@@ -154,7 +154,7 @@ export default function RegimeDashboard() {
 
                             <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/5">
                                 <p className="text-gray-300 leading-relaxed text-sm italic">
-                                    "{currentRegime.description}"
+                                    &quot;{currentRegime.description}&quot;
                                 </p>
                             </div>
 

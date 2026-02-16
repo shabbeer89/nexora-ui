@@ -23,11 +23,6 @@ export default function AlertsManager() {
     const [history, setHistory] = useState<AlertHistory[]>([]);
     const [testing, setTesting] = useState<string | null>(null);
 
-    useEffect(() => {
-        fetchConfig();
-        fetchHistory();
-    }, []);
-
     const fetchConfig = async () => {
         try {
             const response = await fetch('http://localhost:8888/api/alerts/config');
@@ -47,6 +42,11 @@ export default function AlertsManager() {
             console.error('Failed to fetch history:', error);
         }
     };
+
+    useEffect(() => {
+        fetchConfig();
+        fetchHistory();
+    }, []);
 
     const testAlert = async (channel: string) => {
         setTesting(channel);
