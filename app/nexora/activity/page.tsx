@@ -98,20 +98,63 @@ export default function NexoraActivityPage() {
         if (filter !== 'logs' && filter !== 'all') return;
 
         try {
-            const response = await backendApi.get('/activity/bot-logs');
-            if (response.data?.logs) {
-                const logEvents: ActivityEvent[] = response.data.logs.map((log: LogItem) => ({
-                    id: log.id,
-                    type: (log.type === 'bot_error' || log.level === 'ERROR') ? 'bot_error' : 'info',
-                    title: `${log.botName} [${log.level}]`,
-                    description: log.message,
-                    timestamp: new Date(log.timestamp).toISOString(),
-                    botName: log.botName
-                }));
-                setDetailedLogs(logEvents);
+            const apiUrl = process.env.NEXT_PUBLIC_NEXORA_API_URL || 'http://localhost:8888';
+
+            // Fetch real activity from multiple sources
+            // Use local /api/trades which is already proxied and handled
+            const [tradesResp, regimeResp] = await Promise.all([
+                fetch('/api/trades?limit=50'),
+                fetch(`${apiUrl}/regime/history?limit=20`).catch(() => null)
+            ]);
+
+            const tradesData = tradesResp.ok ? await tradesResp.json() : [];
+            const regimeData = (regimeResp && regimeResp.ok) ? await regimeResp.json() : { history: [] };
+
+            const logEvents: ActivityEvent[] = [];
+
+            // Add trade events
+            if (Array.isArray(tradesData)) {
+                tradesData.forEach((trade: any) => {
+                    logEvents.push({
+                        id: `trade-${trade.id}`,
+                        type: 'trade',
+                        title: `${trade.side.toUpperCase()} ${trade.symbol}`,
+                        description: `Price: $${trade.price.toFixed(2)} | Qty: ${trade.quantity}`,
+                        timestamp: trade.timestamp,
+                        value: trade.pnl !== 0 ? (trade.pnl > 0 ? `+$${trade.pnl.toFixed(2)}` : `-$${Math.abs(trade.pnl).toFixed(2)}`) : `$${(trade.price * trade.quantity).toFixed(2)}`,
+                        botName: trade.bot?.name || 'Nexora',
+                        meta: { trade }
+                    });
+                });
             }
+
+            // Add regime change events
+            if (regimeData.history && Array.isArray(regimeData.history)) {
+                regimeData.history.forEach((regime: any, idx: number) => {
+                    logEvents.push({
+                        id: `regime-${idx}-${regime.timestamp}`,
+                        type: 'info',
+                        title: `Regime Detected: ${regime.regime.toUpperCase()}`,
+                        description: `Market regime changed with ${(regime.strength * 100).toFixed(0)}% confidence`,
+                        timestamp: regime.timestamp,
+                        botName: 'Nexora Brain',
+                        meta: { regime }
+                    });
+                });
+            }
+
+            setDetailedLogs(prev => {
+                // Merge unique by ID
+                const combined = [...logEvents, ...prev];
+                const seen = new Set();
+                return combined.filter(e => {
+                    if (seen.has(e.id)) return false;
+                    seen.add(e.id);
+                    return true;
+                }).slice(0, 100);
+            });
         } catch (e) {
-            console.error("Failed to fetch bot logs", e);
+            console.error("Failed to fetch activity logs", e);
         }
     }, [filter]);
 
@@ -138,7 +181,7 @@ export default function NexoraActivityPage() {
     // Build events list from various sources
     const events = useMemo(() => {
         const allEvents: ActivityEvent[] = [];
-        const now = new Date('2024-01-01').getTime(); // Use static for memo stability or move out of render if possible
+        const now = Date.now();
 
         // Add trade events
         if (trades && trades.length > 0) {

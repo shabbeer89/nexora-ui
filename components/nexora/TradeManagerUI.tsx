@@ -25,12 +25,89 @@ export default function TradeManagerUI() {
 
     const fetchTrades = async () => {
         try {
-            const response = await fetch('http://localhost:8888/api/trades/active');
+            // Fetch real open positions from Nexora API
+            const response = await fetch(`${process.env.NEXT_PUBLIC_NEXORA_API_URL || 'http://localhost:8888'}/portfolio/positions`);
+
+            if (!response.ok) {
+                console.error('Failed to fetch positions:', response.status, response.statusText);
+                setTrades([]);
+                setLoading(false);
+                return;
+            }
+
             const data = await response.json();
-            setTrades(data.trades || []);
+
+            // Check if data is valid
+            if (!data || typeof data !== 'object') {
+                console.error('Invalid response data:', data);
+                setTrades([]);
+                setLoading(false);
+                return;
+            }
+
+            // Transform positions to trade format
+            const cexPositions = data.cex_positions || [];
+            const dexPositions = data.dex_positions || [];
+
+            const transformedTrades: ActiveTrade[] = [];
+
+            // Add CEX positions (Freqtrade)
+            cexPositions.forEach((pos: any) => {
+                transformedTrades.push({
+                    trade_id: `cex-${pos.symbol}-${Date.now()}`,
+                    symbol: pos.symbol,
+                    side: pos.size > 0 ? 'LONG' : 'SHORT',
+                    entry_price: pos.entry_price,
+                    current_price: pos.current_price,
+                    size: Math.abs(pos.size),
+                    pnl: pos.pnl_usd,
+                    pnl_pct: pos.pnl_pct,
+                    entry_time: new Date().toISOString(),
+                    duration_hours: 0,
+                    scale_out_levels: [],
+                    trailing_stop: {
+                        enabled: false,
+                        distance: 0,
+                        current_stop: 0
+                    },
+                    time_exit: {
+                        enabled: false,
+                        max_hours: 0
+                    }
+                });
+            });
+
+            // Add DEX positions (Hummingbot)
+            dexPositions.forEach((pos: any) => {
+                transformedTrades.push({
+                    trade_id: `dex-${pos.symbol}-${Date.now()}`,
+                    symbol: `${pos.symbol} (DEX)`,
+                    side: pos.size > 0 ? 'LONG' : 'SHORT',
+                    entry_price: pos.entry_price,
+                    current_price: pos.current_price,
+                    size: Math.abs(pos.size),
+                    pnl: pos.pnl_usd,
+                    pnl_pct: pos.pnl_pct,
+                    entry_time: new Date().toISOString(),
+                    duration_hours: 0,
+                    scale_out_levels: [],
+                    trailing_stop: {
+                        enabled: false,
+                        distance: 0,
+                        current_stop: 0
+                    },
+                    time_exit: {
+                        enabled: false,
+                        max_hours: 0
+                    }
+                });
+            });
+
+            setTrades(transformedTrades);
             setLoading(false);
         } catch (error) {
             console.error('Failed to fetch trades:', error);
+            setTrades([]);
             setLoading(false);
         }
     };

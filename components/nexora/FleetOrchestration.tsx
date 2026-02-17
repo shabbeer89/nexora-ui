@@ -81,10 +81,12 @@ export default function FleetOrchestration({ onSelectBot, onCreateNew }: FleetOr
                     icon={Activity} color="emerald" label="Operational" value={activeCount}
                     subText={`${activeCount} engines active in cluster`}
                 />
-                <StatusCard
-                    icon={CheckCircle2} color="rose" label="Ghost / Orphaned" value={orphanedCount}
-                    subText="Active containers without configuration files"
-                />
+                {orphanedCount > 0 && (
+                    <StatusCard
+                        icon={CheckCircle2} color="rose" label="Ghost / Orphaned" value={orphanedCount}
+                        subText="Active containers without configuration files"
+                    />
+                )}
                 <StatusCard
                     icon={Globe} color="amber" label="Nexora Threads" value={internalCount}
                     subText="Active process threads managing engine communications"

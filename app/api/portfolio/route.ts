@@ -117,7 +117,7 @@ export async function GET(request: Request) {
                     recentActivity.push({
                         type: 'Trade',
                         description: `${tradeType} ${amount.toFixed(4)} ${trade.trading_pair || 'UNKNOWN'}`,
-                        time: trade.timestamp ? new Date(trade.timestamp).toLocaleTimeString() : 'Recently',
+                        time: trade.timestamp ? new Date(trade.timestamp).toISOString() : new Date().toISOString(),
                         // Show PnL for sells (with +/- prefix), volume for buys (labeled clearly)
                         value: hasPnL
                             ? `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}`

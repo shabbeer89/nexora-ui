@@ -43,14 +43,24 @@ export default function AdvancedOrdersUI() {
     const [activeTab, setActiveTab] = useState<'standard' | 'advanced'>('standard');
     const [deleteModal, setDeleteModal] = useState<{ show: boolean; order: AdvancedOrder | null }>({ show: false, order: null });
     const [isDeleting, setIsDeleting] = useState(false);
+    const [authError, setAuthError] = useState<string | null>(null);
 
     const fetchOrders = async () => {
         try {
+            setAuthError(null);
             const data = await nexoraAPI.getUnifiedOrders();
             setStandardOrders(data.standard || []);
             setAdvancedOrders(data.advanced || []);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to fetch orders:', error);
+            if (error.message?.includes('Authentication')) {
+                setAuthError('Authentication required. Please log in to view orders.');
+            } else {
+                setAuthError('Failed to load orders. Please try again later.');
+            }
+            // Set empty arrays on error
+            setStandardOrders([]);
+            setAdvancedOrders([]);
         }
     };
 
@@ -144,6 +154,21 @@ export default function AdvancedOrdersUI() {
                     </button>
                 </div>
             </div>
+
+            {/* Authentication Error Banner */}
+            {authError && (
+                <div className="bg-red-900/20 border border-red-500/30 rounded-2xl p-6 mb-8">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
+                            <Activity className="w-5 h-5 text-red-400" />
+                        </div>
+                        <div>
+                            <div className="text-sm font-black text-red-400 uppercase tracking-wider">Authentication Required</div>
+                            <div className="text-xs text-slate-400 mt-1">{authError}</div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {activeTab === 'advanced' ? (
                 <>

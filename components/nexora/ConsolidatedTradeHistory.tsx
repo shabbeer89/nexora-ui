@@ -31,6 +31,13 @@ interface PastTrade {
     pnl_pct: number;
     win: boolean | number;
     exit_reason: string;
+    metadata?: {
+        exchange?: string;
+        fee_open?: number;
+        fee_close?: number;
+        orders?: any[];
+        is_open?: boolean;
+    };
 }
 
 export default function ConsolidatedTradeHistory() {
@@ -150,9 +157,11 @@ export default function ConsolidatedTradeHistory() {
                                         Identity
                                     </div>
                                 </th>
+                                <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Executor</th>
                                 <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Target</th>
-                                <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Protocol</th>
+                                <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Regime</th>
                                 <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Entry/Exit</th>
+                                <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Fees</th>
                                 <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Net Change</th>
                                 <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Magnitude</th>
                             </tr>
@@ -182,6 +191,10 @@ export default function ConsolidatedTradeHistory() {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
+                                        <div className="text-xs font-black text-cyan-400">Freqtrade</div>
+                                        <div className="text-[9px] font-mono text-slate-500">{trade.metadata?.exchange || 'binance'}</div>
+                                    </td>
+                                    <td className="px-6 py-4">
                                         <div className="text-xs font-black text-white">{trade.symbol}</div>
                                         <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{trade.strategy}</div>
                                     </td>
@@ -193,6 +206,14 @@ export default function ConsolidatedTradeHistory() {
                                     <td className="px-6 py-4">
                                         <div className="text-[10px] font-bold text-white">${trade.entry_price.toFixed(2)}</div>
                                         <div className="text-[10px] font-bold text-cyan-400">${trade.exit_price.toFixed(2)}</div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="text-[10px] font-bold text-orange-400">
+                                            ${((trade.metadata?.fee_open || 0) + (trade.metadata?.fee_close || 0)).toFixed(2)}
+                                        </div>
+                                        <div className="text-[9px] font-mono text-slate-500">
+                                            {((trade.metadata?.fee_open || 0) * 100).toFixed(2)}% + {((trade.metadata?.fee_close || 0) * 100).toFixed(2)}%
+                                        </div>
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className={cn("text-xs font-black", trade.pnl_usd >= 0 ? "text-emerald-400" : "text-red-400")}>

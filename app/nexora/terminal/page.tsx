@@ -2,67 +2,91 @@
 
 import { Suspense } from 'react';
 import StreamingTerminal from '@/components/dashboard/StreamingTerminal';
-import { Terminal } from 'lucide-react';
+import { Terminal, Shield, Cpu, Activity, Database, Network } from 'lucide-react';
 
 export default function TerminalPage() {
     return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-black text-white flex items-center gap-3">
-                        <Terminal className="w-8 h-8 text-blue-500" />
+                        <Terminal className="w-8 h-8 text-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]" />
                         System Terminal
                     </h1>
-                    <p className="text-slate-500 text-sm font-mono mt-1 uppercase tracking-widest">
-                        Real-time log aggregation and command execution
+                    <p className="text-slate-500 text-sm font-mono mt-1 uppercase tracking-[0.2em]">
+                        Unified Control Plane • Real-time Log Stream
                     </p>
                 </div>
-                <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
-                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                    <span className="text-[10px] font-black text-emerald-500 uppercase tracking-tighter">Live Stream Active</span>
+                <div className="flex flex-col items-end gap-2">
+                    <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
+                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                        <span className="text-[10px] font-black text-emerald-500 uppercase tracking-tighter">Live Stream Active</span>
+                    </div>
                 </div>
             </div>
 
-
-
-            <div className="space-y-6">
-                {/* Trading Strategies Section */}
+            <div className="space-y-10">
+                {/* Nexora Core Section */}
                 <div>
-                    <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3 px-1">Trading Strategies</h2>
+                    <div className="flex items-center gap-2 mb-4 px-1">
+                        <Shield className="w-4 h-4 text-blue-400" />
+                        <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Nexora Core Control</h2>
+                    </div>
                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                        <StreamingTerminal botId="simple-trend" />
-
-                        <StreamingTerminal botId="freqai" />
+                        <StreamingTerminal botId="nexora-api" className="h-[400px]" />
+                        <StreamingTerminal botId="nexora-orchestrator" className="h-[400px]" />
+                        <StreamingTerminal
+                            botId="nexora-brain"
+                            className="h-[400px]"
+                        />
                     </div>
                 </div>
 
-                {/* Hummingbot Services Section */}
+                {/* Trading Intelligence Section */}
                 <div>
-                    <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3 px-1">Hummingbot Services</h2>
+                    <div className="flex items-center gap-2 mb-4 px-1">
+                        <Cpu className="w-4 h-4 text-cyan-400" />
+                        <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Trading Intelligence (Freqtrade)</h2>
+                    </div>
                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                        <StreamingTerminal botId="hbot" />
-                        <StreamingTerminal botId="dca-hbot" />
+                        {/* Main Freqtrade Service Logs */}
+                        <StreamingTerminal botId="freqtrade" className="h-[400px]" />
+
+                        {/* FreqAI Specific */}
+                        <StreamingTerminal
+                            botId="freqai"
+                            className="h-[400px]"
+                        />
+
+                        {/* Primary Strategy */}
+                        <StreamingTerminal botId="simple-trend" className="h-[400px]" />
                     </div>
                 </div>
 
-                {/* Core APIs Section */}
+                {/* Execution Layer Section */}
                 <div>
-                    <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3 px-1">Core APIs & Services</h2>
+                    <div className="flex items-center gap-2 mb-4 px-1">
+                        <Activity className="w-4 h-4 text-emerald-400" />
+                        <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Execution Layer (Hummingbot)</h2>
+                    </div>
                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                        <StreamingTerminal botId="api" />
-                        <StreamingTerminal botId="orchestrator" />
-                        <StreamingTerminal botId="gateway" />
+                        <StreamingTerminal botId="hummingbot" className="h-[400px]" />
+                        <StreamingTerminal botId="nexora-dca-bot" className="h-[400px]" />
+                        <StreamingTerminal botId="hummingbot-api" className="h-[400px]" />
                     </div>
                 </div>
 
                 {/* Infrastructure Section */}
                 <div>
-                    <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3 px-1">Infrastructure</h2>
+                    <div className="flex items-center gap-2 mb-4 px-1">
+                        <Database className="w-4 h-4 text-slate-500" />
+                        <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Infrastructure Nodes</h2>
+                    </div>
                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                        <StreamingTerminal botId="postgres" />
-                        <StreamingTerminal botId="mqtt" />
-                        <StreamingTerminal botId="ws" />
-                        <StreamingTerminal botId="brain" />
+                        <StreamingTerminal botId="postgres" className="h-[400px]" />
+                        <StreamingTerminal botId="mqtt" className="h-[400px]" />
+                        <StreamingTerminal botId="ws" className="h-[400px]" />
                     </div>
                 </div>
             </div>

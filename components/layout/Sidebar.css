@@ -1,0 +1,83 @@
+:root {
+  --sb-bg: rgba(7, 10, 15, 0.8);
+  --sb-glass-bg: rgba(15, 23, 42, 0.3);
+  --sb-border: rgba(255, 255, 255, 0.08);
+  --sb-glow-cyan: rgba(6, 182, 212, 0.5);
+  --sb-glow-emerald: rgba(16, 185, 129, 0.5);
+  --sb-item-active: rgba(255, 255, 255, 0.08);
+  --sb-item-hover: rgba(255, 255, 255, 0.04);
+  --sb-text-primary: #f8fafc;
+  --sb-text-secondary: #94a3b8;
+  --sb-text-muted: #475569;
+}
+
+.sidebar-container {
+  backdrop-filter: blur(20px);
+  box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+}
+
+.sidebar-group-header {
+  user-select: none;
+  cursor: pointer;
+}
+
+.sidebar-group-header:active {
+  cursor: grabbing;
+}
+
+.sidebar-item {
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.sidebar-item:active {
+  cursor: grabbing;
+}
+
+.sidebar-item.active {
+  background: var(--sb-item-active);
+  box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.02);
+}
+
+.sidebar-item-glow {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  border-radius: 0 4px 4px 0;
+  filter: blur(2px);
+  background: #06b6d4;
+  box-shadow: 0 0 15px #06b6d4;
+}
+
+.gelly-card {
+  background: var(--sb-glass-bg);
+  border: 1px solid var(--sb-border);
+  backdrop-filter: blur(12px);
+  border-radius: 20px;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Drag & Drop Overlays */
+.group-dragging {
+  opacity: 0.5;
+  scale: 0.98;
+}
+
+.item-dragging {
+  background: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+  z-index: 100;
+}

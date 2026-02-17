@@ -15,9 +15,11 @@ interface StreamingTerminalProps {
     botId: string;
     initialLogs?: LogEntry[];
     recentlyActive?: boolean;
+    className?: string;
+    messageFilter?: string;
 }
 
-export default function StreamingTerminal({ botId, initialLogs = [], recentlyActive }: StreamingTerminalProps) {
+export default function StreamingTerminal({ botId, initialLogs = [], recentlyActive, className, messageFilter }: StreamingTerminalProps) {
     const [logs, setLogs] = useState<LogEntry[]>([]);
 
     // Sync initial logs when they change or component mounts
@@ -77,7 +79,8 @@ export default function StreamingTerminal({ botId, initialLogs = [], recentlyAct
     const filteredLogs = logs.filter(log => {
         const matchesSearch = log.message.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesLevel = levelFilter === 'ALL' || log.level.toUpperCase() === levelFilter;
-        return matchesSearch && matchesLevel;
+        const matchesFilter = !messageFilter || log.message.toLowerCase().includes(messageFilter.toLowerCase());
+        return matchesSearch && matchesLevel && matchesFilter;
     });
 
     const clearLogs = () => setLogs([]);
@@ -107,7 +110,7 @@ export default function StreamingTerminal({ botId, initialLogs = [], recentlyAct
     };
 
     return (
-        <div className="flex flex-col h-full bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-2xl">
+        <div className={cn("flex flex-col h-full bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-2xl min-h-[300px]", className)}>
             {/* Terminal Header */}
             <div className="flex items-center justify-between px-4 py-2 bg-slate-900 border-b border-slate-800 overflow-x-auto no-scrollbar gap-4">
                 <div className="flex items-center gap-2 shrink-0 group/tooltip relative">
@@ -118,19 +121,22 @@ export default function StreamingTerminal({ botId, initialLogs = [], recentlyAct
                         <TerminalIcon className={cn("w-4 h-4 transition-transform", isCollapsed ? "text-slate-500" : "text-blue-500")} />
                     </button>
                     <span className="text-xs font-bold text-slate-300 uppercase tracking-widest cursor-help">
-                        {botId === 'hbot' ? 'Hummingbot API' :
-                            botId === 'gateway' ? 'Gateway API' :
-                                botId === 'hummingbot' ? 'Hummingbot' :
-                                    botId === 'dca-hbot' ? 'DCA-HBOT' :
-                                        botId === 'simple-trend' ? 'SimpleTrendFollowing ⭐' :
-                                            botId === 'regime-adaptive' ? 'RegimeAdaptive' :
-                                                botId === 'freqai' ? 'FreqAI Training' :
-                                                    botId === 'orchestrator' ? 'Orchestrator' :
-                                                        botId === 'api' ? 'Nexora API' :
-                                                            botId === 'ws' ? 'WebSocket' :
-                                                                botId === 'mqtt' ? 'MQTT Broker' :
-                                                                    botId === 'postgres' ? 'PostgreSQL' :
-                                                                        botId === 'brain' ? 'Nexora Brain' : 'Terminal'}
+                        {botId === 'hummingbot-api' ? 'Hummingbot Manager' :
+                            botId === 'nexora-api' ? 'Nexora REST API' :
+                                botId === 'nexora-orchestrator' ? (messageFilter ? 'Nexora Brain 🧠' : 'Nexora Core Control') :
+                                    botId === 'hummingbot' ? 'Hummingbot Core' :
+                                        botId === 'hbot' ? 'Hummingbot API' :
+                                            botId === 'gateway' ? 'Gateway API' :
+                                                botId === 'dca-hbot' ? 'DCA-HBOT' :
+                                                    botId === 'nexora-dca-bot' ? 'Nexora DCA Engine 🤖' :
+                                                        botId === 'freqtrade' ? 'Freqtrade Core' :
+                                                            botId === 'simple-trend' ? 'SimpleTrendFollowing ⭐' :
+                                                                botId === 'regime-adaptive' ? 'RegimeAdaptive' :
+                                                                    botId === 'freqai' ? 'FreqAI Intelligence' :
+                                                                        botId === 'nexora-brain' ? 'Nexora Brain 🧠' :
+                                                                            botId === 'ws' ? 'WebSocket' :
+                                                                                botId === 'mqtt' ? 'MQTT Broker' :
+                                                                                    botId === 'postgres' ? 'PostgreSQL' : 'Terminal'}
                         {recentlyActive && !isCollapsed && <span className="ml-2 w-1.5 h-1.5 bg-green-500 rounded-full inline-block animate-pulse"></span>}
                     </span>
 
@@ -289,7 +295,7 @@ export default function StreamingTerminal({ botId, initialLogs = [], recentlyAct
                 <>
                     <div
                         ref={scrollRef}
-                        className="h-[300px] p-4 font-mono text-[11px] overflow-y-auto space-y-0.5 custom-scrollbar selection:bg-blue-500/30"
+                        className="flex-1 p-4 font-mono text-[11px] overflow-y-auto space-y-0.5 custom-scrollbar selection:bg-blue-500/30"
                     >
                         {filteredLogs.length > 0 ? (
                             filteredLogs.map((log, idx) => (

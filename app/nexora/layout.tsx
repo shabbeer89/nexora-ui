@@ -34,7 +34,7 @@ export default function NexoraLayout({
 
             {/* Content Area */}
             <div className={cn(
-                "flex-1 flex flex-col min-h-screen relative transition-all duration-300 ease-in-out",
+                "flex-1 flex flex-col min-h-screen relative transition-all duration-500 ease-[cubic-bezier(0.23,1.3,0.32,1)]",
                 isSidebarExpanded ? "ml-72" : "ml-20"
             )}>
                 {/* Ambient Background Effects */}
