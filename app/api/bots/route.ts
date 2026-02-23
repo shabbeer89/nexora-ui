@@ -113,8 +113,9 @@ export async function GET(request: NextRequest) {
             const containerIsRunning = dockerContainer?.status === 'running';
 
             // Trust Docker container status over orchestrator for determining if bot is running
-            const isRunning = containerIsRunning || botStatus?.status === 'running';
-            const isStopped = !containerIsRunning && botStatus?.status === 'stopped';
+            const isRecentlyActive = botStatus?.recently_active || false;
+            const isRunning = containerIsRunning || botStatus?.status === 'running' || (containerIsRunning && isRecentlyActive);
+            const isStopped = !isRunning;
 
             // Get config details for this bot
             const configName = run?.config_name?.replace('.yml', '') || botName;
@@ -150,49 +151,65 @@ export async function GET(request: NextRequest) {
                 });
             }
 
-            // try orchestrator status first
-            const hasOrchestratorData = botStatus?.performance &&
-                ((typeof botStatus.performance.total_trades === 'number' && botStatus.performance.total_trades > 0) ||
-                    (typeof botStatus.performance.pnl === 'number' && botStatus.performance.pnl !== 0));
+            // Infrastructure / Non-trading component detection
+            const isInfra = botName.startsWith('hummingbot-') ||
+                botName === 'gateway' ||
+                botName === 'postgres' ||
+                botName.includes('broker') ||
+                botName.includes('db-manager') ||
+                botName.includes('orchestrator');
 
-            if (hasOrchestratorData) {
-                pnl24h = botStatus.performance.pnl || 0;
-                trades24h = botStatus.performance.total_trades || 0;
-            } else {
-                // Fallback to global trades
-                const botTrades = globalTrades.filter(t =>
-                    t.bot_name === botName ||
-                    t.instance_id === botName ||
-                    t.config_file_path?.includes(botName)
-                );
+            const isInternal = botName.startsWith('nexora-') &&
+                botName !== 'nexora-dca-bot' &&
+                !run?.strategy_name?.includes('Dca');
 
-                if (botTrades.length > 0) {
-                    const { calculateFIFO } = await import('@/lib/pnl-calculator');
-                    const pnlResult = calculateFIFO(botTrades);
-                    pnl24h = pnlResult.totalRealizedPnL;
-                    trades24h = pnlResult.totalTrades;
-                    volume24h = pnlResult.totalVolume;
-                    fees24h = pnlResult.totalFees;
-                }
+            const isTradingBot = !isInfra && !isInternal;
 
-                // Local DB fallback for paper trading
-                if (trades24h === 0) {
-                    try {
-                        const dbPath = `bots/instances/${botName}/data/${botName}.sqlite`;
-                        const headers = getAuthHeaders(request);
-                        const localTradesRes = await axios.get(
-                            `${API_URL}/archived-bots/${encodeURIComponent(dbPath)}/trades?limit=1000`,
-                            { headers, validateStatus: () => true }
-                        );
-                        if (localTradesRes.data?.trades?.length > 0) {
-                            const { calculateFIFO } = await import('@/lib/pnl-calculator');
-                            const pnlResult = calculateFIFO(localTradesRes.data.trades);
-                            pnl24h = pnlResult.totalRealizedPnL;
-                            trades24h = pnlResult.totalTrades;
-                            volume24h = pnlResult.totalVolume;
-                            fees24h = pnlResult.totalFees;
-                        }
-                    } catch (err) { }
+            if (isTradingBot) {
+                // try orchestrator status first
+                const hasOrchestratorData = botStatus?.performance &&
+                    ((typeof botStatus.performance.total_trades === 'number' && botStatus.performance.total_trades > 0) ||
+                        (typeof botStatus.performance.pnl === 'number' && botStatus.performance.pnl !== 0));
+
+                if (hasOrchestratorData) {
+                    pnl24h = botStatus.performance.pnl || 0;
+                    trades24h = botStatus.performance.total_trades || 0;
+                } else {
+                    // Fallback to global trades
+                    const botTrades = globalTrades.filter(t =>
+                        t.bot_name === botName ||
+                        t.instance_id === botName ||
+                        t.config_file_path?.includes(botName)
+                    );
+
+                    if (botTrades.length > 0) {
+                        const { calculateFIFO } = await import('@/lib/pnl-calculator');
+                        const pnlResult = calculateFIFO(botTrades);
+                        pnl24h = pnlResult.totalRealizedPnL;
+                        trades24h = pnlResult.totalTrades;
+                        volume24h = pnlResult.totalVolume;
+                        fees24h = pnlResult.totalFees;
+                    }
+
+                    // Local DB fallback for paper trading
+                    if (trades24h === 0) {
+                        try {
+                            const dbPath = `bots/instances/${botName}/data/${botName}.sqlite`;
+                            const headers = getAuthHeaders(request);
+                            const localTradesRes = await axios.get(
+                                `${API_URL}/archived-bots/${encodeURIComponent(dbPath)}/trades?limit=1000`,
+                                { headers, validateStatus: () => true, timeout: 5000 }
+                            );
+                            if (localTradesRes.status === 200 && localTradesRes.data?.trades?.length > 0) {
+                                const { calculateFIFO } = await import('@/lib/pnl-calculator');
+                                const pnlResult = calculateFIFO(localTradesRes.data.trades);
+                                pnl24h = pnlResult.totalRealizedPnL;
+                                trades24h = pnlResult.totalTrades;
+                                volume24h = pnlResult.totalVolume;
+                                fees24h = pnlResult.totalFees;
+                            }
+                        } catch (err) { }
+                    }
                 }
             }
 

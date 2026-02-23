@@ -27,7 +27,7 @@ export async function POST(
 ) {
     try {
         const { id } = await params;
-        console.log(`[Bot Stop] Stopping bot: ${id}`);
+        console.log(`[Bot Stop] Attempting to stop bot: ${id}`);
 
         const axiosConfig = {
             headers: getAuthHeaders(request),
@@ -35,12 +35,34 @@ export async function POST(
             timeout: 30000
         };
 
+        // RESOLVE ID TO BOT NAME (CRITICAL FIX)
+        // If id is a numeric ID or instance_id, we need the bot_name for orchestrator calls
+        let botName = id;
+        try {
+            const runsRes = await axios.get(`${API_URL}/bot-orchestration/bot-runs`, axiosConfig);
+            if (runsRes.status === 200 && Array.isArray(runsRes.data?.data)) {
+                // Check against bot_name, id, or instance_id
+                const match = runsRes.data.data.find((r: any) =>
+                    r.bot_name === id ||
+                    String(r.id) === String(id) ||
+                    String(r.instance_id) === String(id) ||
+                    String(r.instance_name) === String(id)
+                );
+                if (match) {
+                    botName = match.bot_name || match.instance_name;
+                    console.log(`[Bot Stop] Resolved ID ${id} to Bot Name: ${botName}`);
+                }
+            }
+        } catch (e: any) {
+            console.warn(`[Bot Stop] ID lookup failed: ${e.message}`);
+        }
+
         // Step 1: Send stop command to trading strategy via MQTT
-        console.log(`[Bot Stop] Sending stop-bot command for ${id}`);
+        console.log(`[Bot Stop] Sending stop-bot command for ${botName}`);
         const stopResponse = await axios.post(
             `${API_URL}/bot-orchestration/stop-bot`,
             {
-                bot_name: id,
+                bot_name: botName,
                 skip_order_cancellation: false
             },
             axiosConfig
@@ -49,12 +71,12 @@ export async function POST(
         console.log(`[Bot Stop] stop-bot response:`, stopResponse.data);
 
         // Wait a moment for the strategy to gracefully shutdown
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 3000));
 
         // Step 2: Stop the Docker container
-        console.log(`[Bot Stop] Stopping Docker container: ${id}`);
+        console.log(`[Bot Stop] Stopping Docker container: ${botName}`);
         const containerStopResponse = await axios.post(
-            `${API_URL}/docker/stop-container/${id}`,
+            `${API_URL}/docker/stop-container/${botName}`,
             {},
             axiosConfig
         );

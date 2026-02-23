@@ -160,11 +160,22 @@ export async function GET(
         // Determine derived status
         const isDockerRunning = dockerContainerData?.status === 'running';
         const isBotRunning = statusData.status === 'running';
+        const isRecentlyActive = statusData.recently_active || false;
 
         let derivedStatus = 'stopped';
-        if (isBotRunning) derivedStatus = 'running';
-        else if (isDockerRunning) derivedStatus = 'starting'; // Container up but app still initializing
-        else if (botRunData.runStatus === 'FAILED') derivedStatus = 'error';
+        if (isBotRunning) {
+            derivedStatus = 'running';
+        } else if (isDockerRunning) {
+            // For V1 scripts that don't report controller status, 
+            // we trust Docker + Recent Activity (heartbeats)
+            if (isRecentlyActive) {
+                derivedStatus = 'running';
+            } else {
+                derivedStatus = 'starting';
+            }
+        } else if (botRunData.runStatus === 'FAILED') {
+            derivedStatus = 'error';
+        }
 
         // If we have absolutely no data (all failed), then throw error
         if (statusRes.status === 'rejected' && configRes.status === 'rejected' && botRunsRes.status === 'rejected') {

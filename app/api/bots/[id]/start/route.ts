@@ -31,7 +31,7 @@ export async function POST(
 ) {
     try {
         const { id } = await params;
-        console.log(`[Bot Start] Bot ID: ${id}`);
+        console.log(`[Bot Start] Attempting to start bot: ${id}`);
 
         const axiosConfig = {
             headers: getAuthHeaders(request),
@@ -39,31 +39,51 @@ export async function POST(
             timeout: 30000
         };
 
+        // RESOLVE ID TO BOT NAME (CRITICAL FIX)
+        let botName = id;
+        try {
+            const runsRes = await axios.get(`${API_URL}/bot-orchestration/bot-runs`, axiosConfig);
+            if (runsRes.status === 200 && Array.isArray(runsRes.data?.data)) {
+                const match = runsRes.data.data.find((r: any) =>
+                    r.bot_name === id ||
+                    String(r.id) === String(id) ||
+                    String(r.instance_id) === String(id) ||
+                    String(r.instance_name) === String(id)
+                );
+                if (match) {
+                    botName = match.bot_name || match.instance_name;
+                    console.log(`[Bot Start] Resolved ID ${id} to Bot Name: ${botName}`);
+                }
+            }
+        } catch (e: any) {
+            console.warn(`[Bot Start] ID lookup failed: ${e.message}`);
+        }
+
         // Step 1: Check if container is running, if not start it
-        console.log(`[Bot Start] Checking if container ${id} is running...`);
+        console.log(`[Bot Start] Checking if container ${botName} is running...`);
         const activeRes = await axios.get(`${API_URL}/docker/active-containers`, axiosConfig);
         const activeContainers = Array.isArray(activeRes.data) ? activeRes.data : [];
-        const isRunning = activeContainers.some((c: any) => c.name === id);
+        const isRunning = activeContainers.some((c: any) => c.name === botName);
 
         if (!isRunning) {
-            console.log(`[Bot Start] Container ${id} not running, starting it...`);
+            console.log(`[Bot Start] Container ${botName} not running, starting it...`);
             const startContainerRes = await axios.post(
-                `${API_URL}/docker/start-container/${id}`,
+                `${API_URL}/docker/start-container/${botName}`,
                 {},
                 axiosConfig
             );
             console.log(`[Bot Start] Container start response:`, startContainerRes.data);
 
             // Wait for container to start
-            await new Promise(resolve => setTimeout(resolve, 5000));
+            await new Promise(resolve => setTimeout(resolve, 8000));
         }
 
         // Step 2: Get the bot's script configuration
-        console.log(`[Bot Start] Fetching config for ${id}...`);
-        const configRes = await axios.get(`${API_URL}/scripts/configs/${id}`, axiosConfig);
+        console.log(`[Bot Start] Fetching config for ${botName}...`);
+        const configRes = await axios.get(`${API_URL}/scripts/configs/${botName}`, axiosConfig);
 
         let script = 'simple_pmm';  // Default script
-        let conf = id;               // Default to bot name
+        let conf = botName;               // Default to bot name
 
         if (configRes.status === 200 && configRes.data) {
             // Extract script name (remove .py extension if present)
@@ -71,16 +91,16 @@ export async function POST(
                 script = configRes.data.script_file_name.replace('.py', '');
             }
             // The conf is the config file name (without .yml)
-            conf = id;
+            conf = botName;
         }
 
-        console.log(`[Bot Start] Starting bot with script=${script}, conf=${conf}`);
+        console.log(`[Bot Start] Starting bot strategy with script=${script}, conf=${conf}`);
 
         // Step 3: Send start command with script and conf parameters
         const response = await axios.post(
             `${API_URL}/bot-orchestration/start-bot`,
             {
-                bot_name: id,
+                bot_name: botName,
                 script: script,
                 conf: conf,
                 log_level: "INFO"

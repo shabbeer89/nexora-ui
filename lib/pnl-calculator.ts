@@ -82,27 +82,37 @@ export function calculateFIFO(trades: any[]): PnLResult {
 
             // Unmatched portion
             if (remainingToSell > 0.00000001) {
-                costBasis += remainingToSell * price;
+                // We don't have enough matching buys. 
+                // This could be from pre-existing balance or external deposits.
                 isUnmatchedSell = true;
             }
 
             const revenue = quantity * price;
-            // Full PnL for this trade event
-            tradePnL = revenue - costBasis - fee;
 
-            // Stats calculation (only for matched or fully processed)
-            if (!isUnmatchedSell || matchedQuantity > 0.00000001) {
+            // Stats calculation
+            if (matchedQuantity > 0.00000001) {
                 const matchedRevenue = matchedQuantity * price;
-                const matchedPnL = matchedRevenue - (costBasis - remainingToSell * price) - (fee * matchedQuantity / quantity);
+                // Only count the cost for the portion we matched
+                const matchedCost = costBasis;
+                const matchedPnL = matchedRevenue - matchedCost - (fee * matchedQuantity / quantity);
 
                 if (matchedPnL > 0) winningTrades++;
                 else if (matchedPnL < 0) losingTrades++;
 
                 totalRealizedPnL += matchedPnL;
                 tradePnL = matchedPnL;
-            } else {
+
+                // If also partially unmatched, the unmatched part only subtracts its fee
+                if (isUnmatchedSell) {
+                    const unmatchedFee = fee * (remainingToSell / quantity);
+                    totalRealizedPnL -= unmatchedFee;
+                    tradePnL -= unmatchedFee;
+                }
+            } else if (isUnmatchedSell) {
+                // Entire trade is unmatched - relative profit is unknown, so just count the fee loss
                 tradePnL = -fee;
                 totalRealizedPnL -= fee;
+                losingTrades++; // Technically a fee loss
             }
         }
 

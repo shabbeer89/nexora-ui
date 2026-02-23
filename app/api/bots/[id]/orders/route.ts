@@ -150,12 +150,10 @@ export async function GET(
             console.error('[Bot Orders] Error fetching database orders:', e);
         }
 
-        // Parse timestamps - they are already in milliseconds from the SQLite database
+        // Parse timestamps
         const parseTimestamp = (ts: any): number => {
             if (!ts) return Date.now();
             const numTs = parseFloat(ts);
-            // If timestamp is less than year 3000 in seconds, it's in seconds
-            // Otherwise it's already in milliseconds
             return numTs > 32503680000 ? numTs : numTs * 1000;
         };
 
@@ -188,7 +186,7 @@ export async function GET(
                     status = 'FILLED';
                 } else if (state.includes('CANCEL')) {
                     status = 'CANCELLED';
-                } else if (state.includes('FAIL') || state.includes('REJECT')) {
+                } else if (state.includes('FAIL') || state.includes('REJECT') || state.includes('ORDERFAILURE')) {
                     status = 'FAILED';
                 } else if (state.includes('PENDING') || state.includes('OPEN') || state.includes('CREATED')) {
                     status = 'OPEN';
@@ -197,17 +195,29 @@ export async function GET(
                 }
             }
 
+            const rawId = order.id || order.order_id || order.client_order_id || "";
+            const side = rawId.startsWith('sell://') ? 'sell' : (rawId.startsWith('buy://') ? 'buy' : (order.trade_type || order.side || 'buy').toLowerCase());
+
+            // Scaler: Hummingbot fixed-point to decimal
+            let price = parseFloat(order.price) || 0;
+            let amount = parseFloat(order.amount) || parseFloat(order.quantity) || 0;
+            let filled = parseFloat(order.filled_amount) || parseFloat(order.executed_amount_base) || 0;
+
+            if (price > 1000000 && price % 1000 === 0) price = price / 1000000;
+            if (amount > 1000000 && amount % 1000 === 0) amount = amount / 1000000;
+            if (filled > 1000000 && filled % 1000 === 0) filled = filled / 1000000;
+
             const timestamp = parseTimestamp(order.creation_timestamp);
 
             return {
-                id: order.order_id || order.id || order.client_order_id,
+                id: rawId,
                 botId: order.bot_name || botId,
                 symbol: order.trading_pair || order.symbol || 'UNKNOWN',
-                side: (order.trade_type || order.side || 'buy').toLowerCase(),
+                side: side,
                 type: (order.order_type || 'limit').toLowerCase(),
-                price: parseFloat(order.price) || 0,
-                amount: parseFloat(order.amount) || parseFloat(order.quantity) || 0,
-                filled: parseFloat(order.filled_amount) || parseFloat(order.executed_amount_base) || 0,
+                price: price,
+                amount: amount,
+                filled: filled,
                 status: status,
                 exchange: order.connector_name || order.exchange || 'unknown',
                 createdAt: new Date(timestamp).toISOString(),

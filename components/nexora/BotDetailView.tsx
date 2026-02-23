@@ -310,12 +310,38 @@ export default function BotDetailView({ botId, onBack }: BotDetailViewProps) {
                     <DynamicConfigEditor botId={botId} initialConfig={botStatus?.config || {}} onUpdate={fetchData} isRunning={isRunning} />
                 )}
 
-                {(activeTab === 'orders' || activeTab === 'trades') && (
-                    <div className="bg-[#0B1221] border border-slate-800 rounded-xl min-h-[400px] flex items-center justify-center text-slate-500">
-                        <div className="text-center">
-                            <h3 className="text-lg font-bold text-white mb-2">Real-Time Data Feed</h3>
-                            <p className="text-sm">Historical {activeTab} will populate here upon node activation.</p>
-                        </div>
+                {activeTab === 'orders' && (
+                    <div className="bg-[#0B1221] border border-slate-800 rounded-xl overflow-hidden">
+                        <DataTable
+                            title="Active & Historical Orders"
+                            data={ordersData?.orders || []}
+                            columns={[
+                                { key: 'timestamp', label: 'Time', format: (v: any) => new Date(v).toLocaleTimeString() },
+                                { key: 'side', label: 'Side', format: (v: any) => v.toUpperCase(), color: (v: any) => v === 'buy' ? 'text-emerald-400' : 'text-rose-400' },
+                                { key: 'price', label: 'Price', format: (v: any) => `$${v.toLocaleString()}` },
+                                { key: 'amount', label: 'Amount', format: (v: any) => v.toFixed(4) },
+                                { key: 'status', label: 'Status', format: (v: any) => v, color: (v: any) => v === 'FILLED' ? 'text-emerald-400' : 'text-slate-500' }
+                            ]}
+                            emptyMessage="No orders found for this bot."
+                        />
+                    </div>
+                )}
+
+                {activeTab === 'trades' && (
+                    <div className="bg-[#0B1221] border border-slate-800 rounded-xl overflow-hidden">
+                        <DataTable
+                            title="Execution History"
+                            data={tradesData?.trades || []}
+                            columns={[
+                                { key: 'timestamp', label: 'Time', format: (v: any) => new Date(v).toLocaleTimeString() },
+                                { key: 'side', label: 'Side', format: (v: any) => v.toUpperCase(), color: (v: any) => v === 'buy' ? 'text-emerald-400' : 'text-rose-400' },
+                                { key: 'price', label: 'Price', format: (v: any) => `$${v.toLocaleString()}` },
+                                { key: 'quantity', label: 'Quantity', format: (v: any) => v.toFixed(4) },
+                                { key: 'pnl', label: 'P&L', format: (v: any, row: any) => row.side === 'sell' ? `${v >= 0 ? '+' : ''}$${v.toFixed(2)}` : '-', color: (v: any, row: any) => row.side === 'sell' ? (v >= 0 ? 'text-emerald-400' : 'text-rose-400') : 'text-slate-500' }
+                            ]}
+                            emptyMessage="No trade history available yet."
+                            footnote={tradesData?.stats?.unmatchedSells > 0 ? `Note: ${tradesData.stats.unmatchedSells} sell(s) used pre-existing inventory (unknown cost basis).` : undefined}
+                        />
                     </div>
                 )}
             </div>
@@ -353,6 +379,53 @@ export default function BotDetailView({ botId, onBack }: BotDetailViewProps) {
                             </button>
                         </div>
                     </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function DataTable({ title, data, columns, emptyMessage, footnote }: { title: string, data: any[], columns: any[], emptyMessage: string, footnote?: string }) {
+    return (
+        <div className="flex flex-col h-full">
+            <div className="px-5 py-4 border-b border-slate-800 bg-slate-900/50 flex justify-between items-center">
+                <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{title}</h3>
+                <span className="text-[10px] font-bold text-slate-500">{data.length} Records</span>
+            </div>
+            <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                    <thead>
+                        <tr className="bg-slate-950/50">
+                            {columns.map((col: any) => (
+                                <th key={col.key} className="px-5 py-3 text-[9px] font-black text-slate-500 uppercase tracking-wider border-b border-slate-800">{col.label}</th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/50">
+                        {data.length > 0 ? data.map((row: any, i: number) => (
+                            <tr key={row.id || i} className="hover:bg-cyan-500/5 transition-colors group">
+                                {columns.map((col: any) => (
+                                    <td key={col.key} className={cn(
+                                        "px-5 py-3 text-xs font-mono font-medium",
+                                        col.color ? col.color(row[col.key], row) : "text-slate-300"
+                                    )}>
+                                        {col.format ? col.format(row[col.key], row) : row[col.key]}
+                                    </td>
+                                ))}
+                            </tr>
+                        )) : (
+                            <tr>
+                                <td colSpan={columns.length} className="px-5 py-20 text-center">
+                                    <p className="text-xs font-bold text-slate-600 uppercase tracking-widest">{emptyMessage}</p>
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+            {footnote && (
+                <div className="px-5 py-3 bg-slate-900/30 border-t border-slate-800 text-[10px] text-slate-500 italic">
+                    {footnote}
                 </div>
             )}
         </div>
