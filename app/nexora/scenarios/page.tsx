@@ -1,12 +1,21 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     Layers, Play, Square, AlertTriangle, RefreshCw, Loader2,
     TrendingUp, ArrowRightLeft, Shield, Zap, DollarSign, Clock,
-    ChevronRight, Activity, Target
+    ChevronRight, Activity, Target, X, ChevronDown, ChevronUp,
+    Terminal, Wallet
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+const API_URL = process.env.NEXT_PUBLIC_NEXORA_API_URL || 'http://localhost:8888';
+
+interface LogEntry {
+    timestamp: string;
+    level: string;
+    message: string;
+}
 
 interface Scenario {
     id: string;
@@ -19,7 +28,10 @@ interface Scenario {
     status: 'inactive' | 'active' | 'running' | 'paused' | 'error';
     started_at?: string;
     pnl: number;
+    cex_pnl: number;
+    dex_pnl: number;
     is_auto: boolean;
+    execution_log: LogEntry[];
 }
 
 interface ScenariosResponse {
@@ -52,10 +64,22 @@ export default function ScenariosPage() {
     const [error, setError] = useState<string | null>(null);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+    const [startModal, setStartModal] = useState<string | null>(null);
+    const [capital, setCapital] = useState<number>(1000);
+    const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
 
-    const fetchScenarios = async () => {
+    const toggleExpand = (id: string) => {
+        setExpandedCards(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    const fetchScenarios = useCallback(async () => {
         try {
-            const response = await fetch('http://localhost:8888/api/scenarios/available');
+            const response = await fetch(`${API_URL}/api/scenarios/available`);
             if (!response.ok) throw new Error('Failed to fetch scenarios');
             const data: ScenariosResponse = await response.json();
             setScenarios(data.scenarios);
@@ -66,21 +90,22 @@ export default function ScenariosPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         fetchScenarios();
         const interval = setInterval(fetchScenarios, 10000);
         return () => clearInterval(interval);
-    }, []);
+    }, [fetchScenarios]);
 
     const handleStart = async (scenarioId: string) => {
         setActionLoading(scenarioId);
+        setStartModal(null);
         try {
-            const response = await fetch(`http://localhost:8888/api/scenarios/${scenarioId}/start`, {
+            const response = await fetch(`${API_URL}/api/scenarios/${scenarioId}/start`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ capital: 10000 })
+                body: JSON.stringify({ capital })
             });
             if (!response.ok) {
                 const data = await response.json();
@@ -97,7 +122,7 @@ export default function ScenariosPage() {
     const handleStop = async (scenarioId: string) => {
         setActionLoading(scenarioId);
         try {
-            const response = await fetch(`http://localhost:8888/api/scenarios/${scenarioId}/stop`, {
+            const response = await fetch(`${API_URL}/api/scenarios/${scenarioId}/stop`, {
                 method: 'POST'
             });
             if (!response.ok) {
@@ -118,7 +143,7 @@ export default function ScenariosPage() {
         }
         setActionLoading('emergency');
         try {
-            const response = await fetch('http://localhost:8888/api/scenarios/emergency', {
+            const response = await fetch(`${API_URL}/api/scenarios/emergency`, {
                 method: 'POST'
             });
             if (!response.ok) throw new Error('Failed to trigger emergency');
@@ -132,6 +157,7 @@ export default function ScenariosPage() {
     };
 
     const activeCount = scenarios.filter(s => s.status === 'running' || s.status === 'active').length;
+    const totalPnl = scenarios.reduce((sum, s) => sum + (s.pnl || 0), 0);
 
     const groupedScenarios = scenarios.reduce((acc, scenario) => {
         if (!acc[scenario.category]) acc[scenario.category] = [];
@@ -154,6 +180,19 @@ export default function ScenariosPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
+                    {/* Total P&L */}
+                    {activeCount > 0 && (
+                        <div className="px-4 py-2 rounded-xl border border-white/10 bg-slate-900/50">
+                            <span className="text-[9px] text-slate-500 uppercase font-bold block">Total P&L</span>
+                            <span className={cn(
+                                "text-sm font-black",
+                                totalPnl >= 0 ? "text-emerald-400" : "text-rose-400"
+                            )}>
+                                {totalPnl >= 0 ? '+' : ''}${totalPnl.toFixed(2)}
+                            </span>
+                        </div>
+                    )}
+
                     {/* Active Count */}
                     <div className={cn(
                         "px-4 py-2 rounded-xl border",
@@ -224,19 +263,35 @@ export default function ScenariosPage() {
                             <div className="flex-1 h-px bg-white/5" />
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
                             {categoryScenarios.map((scenario) => (
                                 <ScenarioCard
                                     key={scenario.id}
                                     scenario={scenario}
                                     isLoading={actionLoading === scenario.id}
-                                    onStart={() => handleStart(scenario.id)}
+                                    isExpanded={expandedCards.has(scenario.id)}
+                                    onToggleExpand={() => toggleExpand(scenario.id)}
+                                    onStart={() => {
+                                        setStartModal(scenario.id);
+                                        setCapital(1000);
+                                    }}
                                     onStop={() => handleStop(scenario.id)}
                                 />
                             ))}
                         </div>
                     </div>
                 ))
+            )}
+
+            {/* Start Modal */}
+            {startModal && (
+                <StartScenarioModal
+                    scenario={scenarios.find(s => s.id === startModal)!}
+                    capital={capital}
+                    onCapitalChange={setCapital}
+                    onConfirm={() => handleStart(startModal)}
+                    onCancel={() => setStartModal(null)}
+                />
             )}
 
             {/* Footer */}
@@ -250,143 +305,321 @@ export default function ScenariosPage() {
     );
 }
 
+// ============================================
+// Start Scenario Modal
+// ============================================
+
+interface StartModalProps {
+    scenario: Scenario;
+    capital: number;
+    onCapitalChange: (v: number) => void;
+    onConfirm: () => void;
+    onCancel: () => void;
+}
+
+function StartScenarioModal({ scenario, capital, onCapitalChange, onConfirm, onCancel }: StartModalProps) {
+    const cexAmount = capital * scenario.allocation.cex;
+    const dexAmount = capital * scenario.allocation.dex;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-5">
+                <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-black text-white flex items-center gap-2">
+                        <Play className="w-5 h-5 text-emerald-400" />
+                        Start Scenario
+                    </h3>
+                    <button onClick={onCancel} className="p-1 rounded-lg hover:bg-white/5">
+                        <X className="w-5 h-5 text-slate-400" />
+                    </button>
+                </div>
+
+                <div className="bg-slate-800/50 rounded-xl p-4 space-y-1">
+                    <div className="text-sm font-black text-white">{scenario.name}</div>
+                    <div className="text-xs text-slate-400">{scenario.description}</div>
+                </div>
+
+                {/* Capital Input */}
+                <div className="space-y-2">
+                    <label className="text-[10px] text-slate-500 uppercase font-bold flex items-center gap-1">
+                        <Wallet className="w-3 h-3" /> Total Capital (USD)
+                    </label>
+                    <input
+                        type="number"
+                        value={capital}
+                        onChange={(e) => onCapitalChange(Number(e.target.value))}
+                        min={100}
+                        step={100}
+                        className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white 
+                                   font-mono text-sm focus:border-cyan-500/50 focus:outline-none focus:ring-1 
+                                   focus:ring-cyan-500/30 transition-all"
+                    />
+                    <div className="grid grid-cols-4 gap-2">
+                        {[1000, 5000, 10000, 25000].map(v => (
+                            <button
+                                key={v}
+                                onClick={() => onCapitalChange(v)}
+                                className={cn(
+                                    "text-[10px] font-bold py-1.5 rounded-lg border transition-all",
+                                    capital === v
+                                        ? "border-cyan-500/50 bg-cyan-500/10 text-cyan-400"
+                                        : "border-white/5 bg-slate-800/50 text-slate-500 hover:border-white/20"
+                                )}
+                            >
+                                ${v.toLocaleString()}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Allocation Preview */}
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-slate-800/50 rounded-xl p-3 text-center">
+                        <div className="text-[9px] text-slate-500 uppercase font-bold">CEX Allocation</div>
+                        <div className="text-sm font-black text-cyan-400">${cexAmount.toLocaleString()}</div>
+                        <div className="text-[9px] text-slate-500">{scenario.cex_strategy}</div>
+                    </div>
+                    <div className="bg-slate-800/50 rounded-xl p-3 text-center">
+                        <div className="text-[9px] text-slate-500 uppercase font-bold">DEX Allocation</div>
+                        <div className="text-sm font-black text-purple-400">${dexAmount.toLocaleString()}</div>
+                        <div className="text-[9px] text-slate-500">{scenario.dex_strategy}</div>
+                    </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3">
+                    <button
+                        onClick={onCancel}
+                        className="flex-1 py-2.5 rounded-xl border border-white/10 text-slate-400 
+                                   font-bold text-xs uppercase hover:bg-white/5 transition-all"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        className="flex-1 py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 
+                                   text-emerald-400 font-black text-xs uppercase hover:bg-emerald-500/30 
+                                   transition-all flex items-center justify-center gap-2"
+                    >
+                        <Play className="w-3.5 h-3.5" />
+                        Start with ${capital.toLocaleString()}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ============================================
+// Scenario Card
+// ============================================
+
 interface ScenarioCardProps {
     scenario: Scenario;
     isLoading: boolean;
+    isExpanded: boolean;
+    onToggleExpand: () => void;
     onStart: () => void;
     onStop: () => void;
 }
 
-function ScenarioCard({ scenario, isLoading, onStart, onStop }: ScenarioCardProps) {
+const timeAgo = (date?: string) => {
+    if (!date) return '';
+    const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
+    if (seconds < 60) return 'just now';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    return new Date(date).toLocaleDateString();
+};
+
+function ScenarioCard({ scenario, isLoading, isExpanded, onToggleExpand, onStart, onStop }: ScenarioCardProps) {
     const isActive = scenario.status === 'running' || scenario.status === 'active';
     const isEmergency = scenario.id === 'emergency';
 
+    // Derived metadata
+    const stopLoss = (scenario as any).risk_params?.stop_loss || 0.05;
+    const pair = (scenario as any).pair || 'BTC/USDT';
+
     return (
         <div className={cn(
-            "rounded-2xl border p-5 transition-all relative overflow-hidden",
+            "rounded-2xl border p-5 transition-all relative overflow-hidden flex flex-col h-full",
             "bg-gradient-to-br",
             categoryColors[scenario.category] || 'from-slate-500/20 to-slate-600/20 border-slate-500/30',
-            isActive && "ring-2 ring-emerald-500/50"
+            isActive && "ring-2 ring-emerald-500/50 shadow-lg shadow-emerald-500/20"
         )}>
             {/* Status Indicator */}
-            <div className="absolute top-4 right-4">
+            <div className="absolute top-4 right-4 flex items-center gap-1.5">
+                {isActive && (
+                    <span className="text-[9px] font-black text-emerald-400 animate-pulse uppercase">LIVE</span>
+                )}
                 <div className={cn(
                     "w-3 h-3 rounded-full",
-                    isActive ? "bg-emerald-500 animate-pulse" : "bg-slate-600"
+                    isActive ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" : "bg-slate-600"
                 )} />
             </div>
 
             {/* Header */}
-            <div className="flex items-start gap-3 mb-3">
-                <div className="p-2 rounded-lg bg-white/5">
+            <div className="flex items-start gap-3 mb-4">
+                <div className="p-2.5 rounded-xl bg-white/10 backdrop-blur-md">
                     {categoryIcons[scenario.category]}
                 </div>
                 <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-black text-white truncate">{scenario.name}</h4>
-                    <p className="text-[10px] text-slate-400 line-clamp-2">{scenario.description}</p>
+                    <h4 className="text-sm font-black text-white truncate uppercase tracking-tight">{scenario.name}</h4>
+                    <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[9px] font-bold text-cyan-400/80 bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20">
+                            {pair}
+                        </span>
+                        <span className="text-[9px] font-bold text-slate-500 uppercase">
+                            SL: {(stopLoss * 100).toFixed(0)}%
+                        </span>
+                    </div>
                 </div>
             </div>
 
-            {/* Allocation */}
-            <div className="flex items-center gap-2 mb-3">
-                <div className="flex-1 bg-slate-900/40 rounded-lg p-2">
-                    <div className="text-[9px] text-slate-500 uppercase font-bold mb-1">CEX</div>
-                    <div className="text-sm font-black text-cyan-400">
-                        {(scenario.allocation.cex * 100).toFixed(0)}%
+            {/* Main Stats / Allocation */}
+            <div className="space-y-3 flex-1">
+                {/* Allocation row */}
+                <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-slate-950/40 border border-white/5 rounded-xl p-2.5">
+                        <div className="flex justify-between items-center mb-1">
+                            <span className="text-[9px] text-slate-500 uppercase font-black">CEX</span>
+                            <span className="text-[10px] font-black text-cyan-400">{(scenario.allocation.cex * 100).toFixed(0)}%</span>
+                        </div>
+                        <div className="text-[10px] font-medium text-slate-300 truncate">{scenario.cex_strategy}</div>
                     </div>
-                    <div className="text-[9px] text-slate-500 truncate">{scenario.cex_strategy}</div>
+                    <div className="flex-1 bg-slate-950/40 border border-white/5 rounded-xl p-2.5">
+                        <div className="flex justify-between items-center mb-1">
+                            <span className="text-[9px] text-slate-500 uppercase font-black">DEX</span>
+                            <span className="text-[10px] font-black text-purple-400">{(scenario.allocation.dex * 100).toFixed(0)}%</span>
+                        </div>
+                        <div className="text-[10px] font-medium text-slate-300 truncate">{scenario.dex_strategy}</div>
+                    </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-slate-600" />
-                <div className="flex-1 bg-slate-900/40 rounded-lg p-2">
-                    <div className="text-[9px] text-slate-500 uppercase font-bold mb-1">DEX</div>
-                    <div className="text-sm font-black text-purple-400">
-                        {(scenario.allocation.dex * 100).toFixed(0)}%
+
+                {/* Performance row (if active) */}
+                {isActive ? (
+                    <div className="bg-slate-950/60 border border-emerald-500/20 rounded-xl p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                            <div className="flex flex-col">
+                                <span className="text-[9px] text-slate-500 uppercase font-bold">Trading Capital</span>
+                                <span className="text-xs font-black text-white">${(scenario as any).capital?.toLocaleString() || '0'}</span>
+                            </div>
+                            <div className="text-right">
+                                <span className="text-[9px] text-slate-500 uppercase font-bold block">Profit (P&L)</span>
+                                <span className={cn(
+                                    "font-black text-sm",
+                                    scenario.pnl >= 0 ? "text-emerald-400" : "text-rose-400"
+                                )}>
+                                    {scenario.pnl >= 0 ? '+' : ''}${scenario.pnl.toFixed(2)}
+                                </span>
+                            </div>
+                        </div>
+                        <div className="h-1 w-full bg-slate-800 rounded-full overflow-hidden">
+                            <div
+                                className={cn("h-full transition-all", scenario.pnl >= 0 ? "bg-emerald-500" : "bg-rose-500")}
+                                style={{ width: `${Math.min(100, Math.abs(scenario.pnl / (scenario as any).capital * 1000))}%` }}
+                            />
+                        </div>
+                        <div className="flex items-center justify-between text-[10px]">
+                            <span className="text-slate-500 flex items-center gap-1">
+                                <div className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
+                                CEX: <span className={cn("font-bold", scenario.cex_pnl >= 0 ? "text-emerald-400" : "text-rose-400")}>${scenario.cex_pnl.toFixed(2)}</span>
+                            </span>
+                            <span className="text-slate-500 flex items-center gap-1">
+                                <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                                DEX: <span className={cn("font-bold", scenario.dex_pnl >= 0 ? "text-emerald-400" : "text-rose-400")}>${scenario.dex_pnl.toFixed(2)}</span>
+                            </span>
+                        </div>
                     </div>
-                    <div className="text-[9px] text-slate-500 truncate">{scenario.dex_strategy}</div>
+                ) : (
+                    <div className="flex-1 bg-slate-950/20 border border-dashed border-white/5 rounded-xl flex items-center justify-center p-6 grayscale">
+                        <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest italic">Waiting for Signal</p>
+                    </div>
+                )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="mt-4 space-y-2">
+                {isEmergency ? (
+                    <button
+                        onClick={onStart}
+                        disabled={isLoading}
+                        className="w-full py-2.5 rounded-xl bg-rose-500/20 border border-rose-500/30 
+                                   text-rose-400 font-black uppercase text-xs hover:bg-rose-500/40 
+                                   transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                        {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><AlertTriangle className="w-4 h-4" /> Trigger Emergency</>}
+                    </button>
+                ) : isActive ? (
+                    <button
+                        onClick={onStop}
+                        disabled={isLoading}
+                        className="w-full py-2.5 rounded-xl bg-orange-500/20 border border-orange-500/30 
+                                   text-orange-400 font-black uppercase text-xs hover:bg-orange-500/40 
+                                   transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                        {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Square className="w-3.5 h-3.5" /> Stop Strategy</>}
+                    </button>
+                ) : (
+                    <button
+                        onClick={onStart}
+                        disabled={isLoading}
+                        className="w-full py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 
+                                   text-emerald-400 font-black uppercase text-xs hover:bg-emerald-500/40 
+                                   transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                        {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Play className="w-3.5 h-3.5" /> Deploy Scenario</>}
+                    </button>
+                )}
+
+                {/* Footer Metadata */}
+                <div className="flex items-center justify-between">
+                    <div className="text-[9px] text-slate-500 font-bold flex items-center gap-1.5">
+                        <Clock className="w-3 h-3" />
+                        {isActive ? `Uptime: ${timeAgo(scenario.started_at)}` : 'READY'}
+                    </div>
+                    {isActive && scenario.execution_log?.length > 0 && (
+                        <button
+                            onClick={onToggleExpand}
+                            className={cn(
+                                "text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded transition-all flex items-center gap-1",
+                                isExpanded ? "bg-cyan-500 text-white" : "bg-white/5 text-slate-400 hover:bg-white/10"
+                            )}
+                        >
+                            <Terminal className="w-3 h-3" />
+                            Log
+                            {isExpanded ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />}
+                        </button>
+                    )}
                 </div>
             </div>
 
-            {/* P&L (if active) */}
-            {isActive && (
-                <div className="mb-3 p-2 rounded-lg bg-slate-900/40 flex items-center justify-between">
-                    <span className="text-[10px] text-slate-500 uppercase font-bold">P&L</span>
-                    <span className={cn(
-                        "font-black text-sm",
-                        scenario.pnl >= 0 ? "text-emerald-400" : "text-rose-400"
-                    )}>
-                        {scenario.pnl >= 0 ? '+' : ''}{scenario.pnl.toFixed(2)}
-                    </span>
-                </div>
-            )}
-
-            {/* Auto Badge */}
-            {scenario.is_auto && (
-                <div className="mb-3">
-                    <span className="text-[9px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">
-                        AUTO-TRIGGERED
-                    </span>
-                </div>
-            )}
-
-            {/* Action Button */}
-            {isEmergency ? (
-                <button
-                    onClick={onStart}
-                    disabled={isLoading}
-                    className="w-full py-2 rounded-lg bg-rose-500/20 border border-rose-500/30 
-                               text-rose-400 font-black uppercase text-xs hover:bg-rose-500/30 
-                               transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                    {isLoading ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                        <>
-                            <AlertTriangle className="w-4 h-4" />
-                            Trigger Emergency
-                        </>
-                    )}
-                </button>
-            ) : isActive ? (
-                <button
-                    onClick={onStop}
-                    disabled={isLoading}
-                    className="w-full py-2 rounded-lg bg-rose-500/20 border border-rose-500/30 
-                               text-rose-400 font-black uppercase text-xs hover:bg-rose-500/30 
-                               transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                    {isLoading ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                        <>
-                            <Square className="w-3 h-3" />
-                            Stop
-                        </>
-                    )}
-                </button>
-            ) : (
-                <button
-                    onClick={onStart}
-                    disabled={isLoading}
-                    className="w-full py-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30 
-                               text-emerald-400 font-black uppercase text-xs hover:bg-emerald-500/30 
-                               transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                    {isLoading ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                        <>
-                            <Play className="w-3 h-3" />
-                            Start
-                        </>
-                    )}
-                </button>
-            )}
-
-            {/* Started At */}
-            {scenario.started_at && (
-                <div className="mt-2 text-[9px] text-slate-500 flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    Started: {new Date(scenario.started_at).toLocaleTimeString()}
+            {/* Expanded Execution Log */}
+            {isExpanded && isActive && scenario.execution_log?.length > 0 && (
+                <div className="mt-4 p-3 rounded-xl bg-slate-950 border border-white/10 shadow-inner max-h-48 overflow-y-auto custom-scrollbar">
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="text-[9px] text-cyan-400 uppercase font-black flex items-center gap-1.5">
+                            <Terminal className="w-3 h-3" /> Real-time Execution
+                        </div>
+                        <span className="text-[8px] font-mono text-slate-600 uppercase">Live Feed</span>
+                    </div>
+                    <div className="space-y-1.5">
+                        {scenario.execution_log.slice(-20).map((entry, i) => (
+                            <div key={i} className="text-[9px] font-mono leading-tight flex gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
+                                <span className="text-slate-600 shrink-0">
+                                    {new Date(entry.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                                <span className={cn(
+                                    "break-words",
+                                    entry.level === 'error' ? 'text-rose-400' : 'text-slate-300'
+                                )}>
+                                    {typeof entry.message === 'string'
+                                        ? entry.message
+                                        : JSON.stringify(entry.message)}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             )}
         </div>

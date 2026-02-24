@@ -82,7 +82,9 @@ const INITIAL_NAV_GROUPS: NavGroup[] = [
         items: [
             { href: '/nexora/overview', label: 'Dashboard', icon: 'LayoutDashboard', color: 'text-cyan-400' },
             { href: '/nexora/cockpit', label: 'Market Overview', icon: 'Activity', color: 'text-emerald-400' },
+            { href: '/nexora/scenarios', label: 'Multi-Bot Scenarios', icon: 'Layers', color: 'text-pink-400' },
             { href: '/nexora/activity', label: 'Global Activity', icon: 'History', color: 'text-blue-400' },
+            { href: '/nexora/alerts', label: 'System Alerts', icon: 'Bell', color: 'text-amber-400' },
             { href: '/nexora/charts', label: 'Live Charts', icon: 'CandlestickChart', color: 'text-purple-400' },
             { href: '/nexora/terminal', label: 'System Terminal', icon: 'Terminal', color: 'text-blue-500' },
         ]
@@ -94,10 +96,12 @@ const INITIAL_NAV_GROUPS: NavGroup[] = [
         items: [
             { href: '/nexora/orchestration', label: 'Fleet Orchestration', icon: 'LayoutGrid', color: 'text-cyan-400' },
             { href: '/nexora/engines', label: 'Engine Performance', icon: 'BarChart3', color: 'text-emerald-400' },
+            { href: '/nexora/connectors', label: 'Exchange Connectors', icon: 'Plug', color: 'text-blue-300' },
             { href: '/nexora/strategies', label: 'Strategy Designs', icon: 'Zap', color: 'text-yellow-400' },
             { href: '/nexora/manual', label: 'Manual Trade', icon: 'ArrowUpDown', color: 'text-slate-400' },
             { href: '/nexora/trades', label: 'Active Trades', icon: 'Briefcase', color: 'text-blue-400' },
             { href: '/nexora/orders', label: 'Live Orders', icon: 'GanttChartSquare', color: 'text-indigo-400' },
+            { href: '/nexora/archived-bots', label: 'Archive Vault', icon: 'Archive', color: 'text-slate-500' },
         ]
     },
     {
@@ -110,6 +114,18 @@ const INITIAL_NAV_GROUPS: NavGroup[] = [
             { id: 'hyperopt', label: 'Optimization', icon: 'Target', color: 'text-orange-400' },
             { href: '/nexora/backtesting', label: 'Backtesting', icon: 'Layers', color: 'text-slate-400' },
             { href: '/nexora/scripts', label: 'Strategy Scripts', icon: 'FileCode', color: 'text-yellow-600' },
+        ]
+    },
+    {
+        id: "wealth-risk",
+        label: "Wealth & Risk",
+        color: "text-emerald-400",
+        items: [
+            { href: '/nexora/portfolio', label: 'Asset Portfolio', icon: 'Briefcase', color: 'text-emerald-400' },
+            { href: '/nexora/risk', label: 'Risk Perimeter', icon: 'Shield', color: 'text-rose-400' },
+            { href: '/nexora/analytics', label: 'Bot Analytics', icon: 'BarChart3', color: 'text-cyan-400' },
+            { href: '/nexora/history', label: 'Trade History', icon: 'ClipboardList', color: 'text-slate-400' },
+            { href: '/nexora/health', label: 'Service Health', icon: 'Activity', color: 'text-emerald-500' },
         ]
     }
 ];
@@ -144,7 +160,7 @@ export default function Sidebar({ activeTab, setActiveTab, isExpanded, setIsExpa
 
     useEffect(() => {
         setHasMounted(true);
-        const saved = localStorage.getItem('nexora-sidebar-layout-v3');
+        const saved = localStorage.getItem('nexora-sidebar-layout-v4');
         if (saved) {
             try {
                 setNavGroups(JSON.parse(saved));
@@ -156,7 +172,7 @@ export default function Sidebar({ activeTab, setActiveTab, isExpanded, setIsExpa
 
     useEffect(() => {
         if (hasMounted) {
-            localStorage.setItem('nexora-sidebar-layout-v3', JSON.stringify(navGroups));
+            localStorage.setItem('nexora-sidebar-layout-v4', JSON.stringify(navGroups));
         }
     }, [navGroups, hasMounted]);
 
