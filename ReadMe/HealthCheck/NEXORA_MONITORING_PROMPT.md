@@ -5,7 +5,7 @@
 > **Last Updated**: 2026-03-09 | **Version**: 2.3
 
 ---
-
+ 
 ## 🎯 AIM & Target Benchmarks
 
 > **Ultimate Goal**: Nexora must act like a highly successful, profitable, professional trader earning **2% daily profit**.
