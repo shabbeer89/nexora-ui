@@ -20,7 +20,7 @@ export function MultiTimeframeSynthesis() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await fetch('http://localhost:8888/api/v1/analytics/multi-timeframe');
+                const response = await fetch('/api/v1/analytics/multi-timeframe');
                 const data = await response.json();
                 setTimeframes(data.timeframes || []);
             } catch (error) {

@@ -134,7 +134,7 @@ export default function ConsolidatedTradeHistory() {
                         </button>
                     ))}
                 </div>
-                <button className="p-3 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all text-slate-400">
+                <button aria-label="Download Trade History" className="p-3 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all text-slate-400">
                     <Download className="w-4 h-4" />
                 </button>
             </div>

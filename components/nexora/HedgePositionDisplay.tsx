@@ -23,7 +23,7 @@ export function HedgePositionDisplay() {
     useEffect(() => {
         const fetchHedges = async () => {
             try {
-                const response = await fetch('http://localhost:8888/api/v1/portfolio/hedges');
+                const response = await fetch('/api/v1/portfolio/hedges');
                 const data = await response.json();
                 setHedges(data.positions || []);
             } catch (error) {

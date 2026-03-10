@@ -128,23 +128,30 @@ export async function GET(
             }
         }
 
-        // 4. LOG FALLBACK: If MQTT logs are empty, try to fetch from physical log files
-        // This handles cases where the bot is starting but not yet connected to MQTT
-        if (statusRes.status === 'fulfilled' && (!statusData.general_logs || statusData.general_logs.length <= 1)) {
-            try {
-                // We use a dedicated proxy route or local filesystem helper if available
-                // For now, let's try to fetch via the archived-bots/logs endpoint if it exists
-                const logFileRes = await axios.get(`${API_URL}/bot-orchestration/instance-logs/${botName}`, axiosConfig).catch(() => null);
-                if (logFileRes?.status === 200 && logFileRes.data?.logs) {
-                    statusData.general_logs = logFileRes.data.logs.map((l: string, i: number) => ({
-                        msg: l,
-                        level_name: 'INFO',
-                        timestamp: Date.now() / 1000 - i,
-                        logger_name: 'filesystem'
-                    })).reverse();
-                }
-            } catch (e) { }
-        }
+        // 4. LOG MERGE: Always fetch file-based logs from disk and merge with MQTT logs.
+        // Headless bots always emit exactly 1 MQTT startup message but write full strategy
+        // output to files like logs_v2_directional_rsi.log — these are the real logs.
+        try {
+            const logFileRes = await axios.get(`${API_URL}/bot-orchestration/instance-logs/${botName}`, axiosConfig).catch(() => null);
+            if (logFileRes?.status === 200 && logFileRes.data?.logs && logFileRes.data.logs.length > 0) {
+                const fileLogs = logFileRes.data.logs.map((l: string, i: number) => ({
+                    msg: l,
+                    level_name: l.includes(' - ERROR') ? 'ERROR' : l.includes(' - WARNING') ? 'WARNING' : 'INFO',
+                    timestamp: Date.now() / 1000 - (logFileRes.data.logs.length - i),
+                    logger_name: 'logfile'
+                }));
+                // Merge: put file logs first (chronological), then MQTT logs on top (newest)
+                const mqttLogs = statusData.general_logs || [];
+                const merged = [...fileLogs, ...mqttLogs];
+                // Deduplicate by message content
+                const seen = new Set<string>();
+                statusData.general_logs = merged.filter(l => {
+                    if (seen.has(l.msg)) return false;
+                    seen.add(l.msg);
+                    return true;
+                });
+            }
+        } catch (e) { }
 
         // Calculate runtime if bot is running
         let runtime: { hours: number; minutes: number; totalMs: number } | null = null;

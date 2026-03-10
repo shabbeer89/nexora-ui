@@ -36,7 +36,7 @@ export function LiveTradeFeed() {
             // Fallback to HTTP polling
             const interval = setInterval(async () => {
                 try {
-                    const response = await fetch('http://localhost:8888/api/v1/trades/recent');
+                    const response = await fetch('/api/v1/trades/recent');
                     const data = await response.json();
                     setTrades(data.trades || []);
                 } catch (error) {

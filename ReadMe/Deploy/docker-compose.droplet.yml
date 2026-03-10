@@ -1,0 +1,78 @@
+version: "3.9"
+
+services:
+  # -----------------------------------------------------------------------
+  # 1. Reverse Proxy (Caddy) - Crucial for routing to localhost services
+  # -----------------------------------------------------------------------
+  caddy:
+    image: caddy:2-alpine
+    restart: always
+    network_mode: "host"
+    volumes:
+      - ./nexora-bot/ReadMe/Deploy/Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:80/" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # -----------------------------------------------------------------------
+  # 2. Hummingbot Gateway (DEX Connector)
+  # -----------------------------------------------------------------------
+  gateway:
+    image: hummingbot/gateway:latest
+    container_name: gateway
+    restart: always
+    network_mode: "host"
+    environment:
+      - PORT=15888
+      - NODE_OPTIONS=--max-old-space-size=1024
+    volumes:
+      - ./hbot/gateway/conf:/home/gateway/conf
+      - ./hbot/gateway/logs:/home/gateway/logs
+      - ./hbot/gateway/certs:/home/gateway/certs
+
+  # -----------------------------------------------------------------------
+  # 3. Infrastructure (DB + MQTT)
+  # -----------------------------------------------------------------------
+  postgres:
+    image: postgres:16
+    container_name: hummingbot-postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=hbot
+      - POSTGRES_PASSWORD=hummingbot-api
+      - POSTGRES_DB=hummingbot_api
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hbot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  emqx:
+    image: emqx:5
+    container_name: hummingbot-broker
+    restart: always
+    ports:
+      - "1883:1883"
+      - "8083:8083"
+      - "18083:18083"
+    volumes:
+      - emqx-data:/opt/emqx/data
+    healthcheck:
+      test: [ "CMD", "/opt/emqx/bin/emqx", "ping" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  caddy_data:
+  caddy_config:
+  postgres-data:
+  emqx-data:

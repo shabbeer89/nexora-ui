@@ -1,0 +1,63 @@
+# Caddyfile for Nexora Stack
+# Optimized for Cloudflare Tunnel + Multi-Service Routing
+
+:80 {
+    # Nexora API (primary)
+    handle /api/* {
+        reverse_proxy localhost:8888 {
+            health_uri /health
+            health_interval 30s
+            health_timeout 10s
+            fail_duration 30s
+            max_fails 3
+        }
+    }
+    
+    # Scenario endpoints
+    handle /api/scenarios/* {
+        reverse_proxy localhost:8888
+    }
+    
+    # Hummingbot API (bot orchestration)
+    handle /hbot/* {
+        uri strip_prefix /hbot
+        reverse_proxy localhost:8000 {
+            health_uri /
+            health_interval 30s
+        }
+    }
+    
+    # FreqTrade API
+    handle /freqtrade/* {
+        uri strip_prefix /freqtrade
+        reverse_proxy localhost:8080
+    }
+    
+    # Gateway (DEX)
+    handle /gateway/* {
+        uri strip_prefix /gateway
+        reverse_proxy localhost:15888
+    }
+    
+    # Default fallback to Nexora API
+    handle {
+        reverse_proxy localhost:8888
+    }
+    
+    # Security headers
+    header {
+        -Server
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        X-XSS-Protection "1; mode=block"
+        Access-Control-Allow-Origin "*"
+        Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+        Access-Control-Allow-Headers "Authorization, Content-Type"
+    }
+    
+    # Logging
+    log {
+        output file /var/log/caddy/nexora-access.log
+        format json
+    }
+}

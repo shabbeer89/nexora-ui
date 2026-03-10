@@ -27,7 +27,7 @@ export default function HyperoptDashboard() {
 
     const fetchResults = async () => {
         try {
-            const response = await fetch('http://localhost:8888/api/hyperopt/results');
+            const response = await fetch('/api/hyperopt/results');
             const data = await response.json();
             setResults(data.results || []);
             setLoading(false);

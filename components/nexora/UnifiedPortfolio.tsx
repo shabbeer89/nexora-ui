@@ -32,7 +32,7 @@ export default function UnifiedPortfolio() {
     };
 
     // WebSocket for real-time updates
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8888/ws';
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://64.227.151.249:8888/ws';
     const { onMessage } = useWebSocket(wsUrl);
 
     useEffect(() => {
@@ -162,7 +162,7 @@ export default function UnifiedPortfolio() {
                             <span className="text-[8px] bg-blue-500/20 text-blue-400 px-2 py-1 rounded font-mono">FREQTRADE</span>
                         </div>
                         <div>
-                            <div className="text-3xl font-black text-white">{portfolio ? formatCurrency(portfolio.cex.total_usd) : '$0.00'}</div>
+                            <div className="text-3xl font-black text-white">{portfolio ? formatCurrency(portfolio.cex?.total_usd ?? 0) : '$0.00'}</div>
                             <div className="text-[10px] text-gray-500 font-mono mt-1">{positions ? positions.cex_positions.length : 0} Active Channels</div>
                         </div>
                         <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
@@ -176,7 +176,7 @@ export default function UnifiedPortfolio() {
                             <span className="text-[8px] bg-purple-500/20 text-purple-400 px-2 py-1 rounded font-mono">HUMMINGBOT</span>
                         </div>
                         <div>
-                            <div className="text-3xl font-black text-white">{portfolio ? formatCurrency(portfolio.dex.total_usd) : '$0.00'}</div>
+                            <div className="text-3xl font-black text-white">{portfolio ? formatCurrency(portfolio.dex?.total_usd ?? 0) : '$0.00'}</div>
                             <div className="text-[10px] text-gray-500 font-mono mt-1">{positions ? positions.dex_positions.length : 0} Active Pools</div>
                         </div>
                         <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
@@ -205,7 +205,7 @@ export default function UnifiedPortfolio() {
 
                     {positions && positions.total_positions > 0 ? (
                         <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
-                            {[...positions.cex_positions, ...positions.dex_positions].map((pos, i) => (
+                            {[...(positions.cex_positions || []), ...(positions.dex_positions || [])].map((pos, i) => (
                                 <div key={i} className="group relative">
                                     <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500/20 to-blue-500/0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                     <div className="relative flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-2xl transition-all group-hover:bg-white/[0.05]">

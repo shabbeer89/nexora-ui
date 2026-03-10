@@ -22,7 +22,7 @@ export function HistoricalPerformanceCharts() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await fetch('http://localhost:8888/api/v1/analytics/performance');
+                const response = await fetch('/api/v1/analytics/performance');
                 const result = await response.json();
 
                 setData(result.history || []);

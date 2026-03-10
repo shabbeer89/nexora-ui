@@ -32,7 +32,7 @@ export default function RiskMonitoring() {
     };
 
     // WebSocket for real-time updates
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8888/ws';
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://64.227.151.249:8888/ws';
     const { onMessage } = useWebSocket(wsUrl);
 
     useEffect(() => {

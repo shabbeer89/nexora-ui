@@ -36,7 +36,7 @@ export default function NexoraBacktestingPage() {
 
         try {
             setLogs(['Initializing backtest request...']);
-            const response = await fetch('http://localhost:8888/api/backtesting/run', {
+            const response = await fetch('/api/backtesting/run', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(config)
@@ -77,7 +77,7 @@ export default function NexoraBacktestingPage() {
 
     const fetchResults = async (jid: string) => {
         try {
-            const response = await fetch(`http://localhost:8888/api/backtesting/${jid}/results`);
+            const response = await fetch(`/api/backtesting/${jid}/results`);
             const data = await response.json();
             setResults(data);
             setIsRunning(false);

@@ -90,7 +90,7 @@ export default function AdvancedOrdersUI() {
 
         setIsDeleting(true);
         try {
-            await fetch(`http://localhost:8888/api/orders/advanced/${deleteModal.order.order_id}`, {
+            await fetch(`/api/orders/advanced/${deleteModal.order.order_id}`, {
                 method: 'DELETE'
             });
 
@@ -181,8 +181,9 @@ export default function AdvancedOrdersUI() {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                             {/* Order Type */}
                             <div>
-                                <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-widest">Strategy Type</label>
+                                <label htmlFor="strategy-type" className="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-widest">Strategy Type</label>
                                 <select
+                                    id="strategy-type"
                                     value={orderType}
                                     onChange={(e) => setOrderType(e.target.value)}
                                     className="w-full px-4 py-3 bg-slate-950/50 border border-white/10 rounded-xl text-white font-bold focus:outline-none focus:border-indigo-500 transition-colors"
@@ -196,8 +197,9 @@ export default function AdvancedOrdersUI() {
 
                             {/* Symbol */}
                             <div>
-                                <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-widest">Symbol</label>
+                                <label htmlFor="order-symbol" className="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-widest">Symbol</label>
                                 <input
+                                    id="order-symbol"
                                     type="text"
                                     value={symbol}
                                     onChange={(e) => setSymbol(e.target.value)}
@@ -208,8 +210,9 @@ export default function AdvancedOrdersUI() {
 
                             {/* Side */}
                             <div>
-                                <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-widest">Direction</label>
+                                <label htmlFor="order-direction" className="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-widest">Direction</label>
                                 <select
+                                    id="order-direction"
                                     value={side}
                                     onChange={(e) => setSide(e.target.value)}
                                     className="w-full px-4 py-3 bg-slate-950/50 border border-white/10 rounded-xl text-white font-bold focus:outline-none focus:border-indigo-500 transition-colors"
@@ -221,8 +224,9 @@ export default function AdvancedOrdersUI() {
 
                             {/* Size */}
                             <div>
-                                <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-widest">Position Size (USD)</label>
+                                <label htmlFor="order-size" className="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-widest">Position Size (USD)</label>
                                 <input
+                                    id="order-size"
                                     type="number"
                                     value={size}
                                     onChange={(e) => setSize(e.target.value)}
@@ -233,8 +237,9 @@ export default function AdvancedOrdersUI() {
 
                             {/* Duration */}
                             <div>
-                                <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-widest">Time Horizon (min)</label>
+                                <label htmlFor="order-duration" className="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-widest">Time Horizon (min)</label>
                                 <input
+                                    id="order-duration"
                                     type="number"
                                     value={duration}
                                     onChange={(e) => setDuration(e.target.value)}
@@ -311,6 +316,7 @@ export default function AdvancedOrdersUI() {
                                                     onClick={() => setDeleteModal({ show: true, order })}
                                                     className="p-2 hover:bg-red-500/10 rounded-lg transition-colors group"
                                                     title="Delete order"
+                                                    aria-label="Delete Algo Order"
                                                 >
                                                     <svg className="w-4 h-4 text-slate-600 group-hover:text-red-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

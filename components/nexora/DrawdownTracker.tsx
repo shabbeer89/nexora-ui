@@ -19,7 +19,7 @@ export default function DrawdownTracker() {
 
     const fetchData = async () => {
         try {
-            const response = await fetch('http://localhost:8888/api/analytics/drawdown');
+            const response = await fetch('/api/analytics/drawdown');
             const result = await response.json();
             setData(result);
             setLoading(false);

@@ -6,7 +6,8 @@
  * Handles authentication, request/response formatting, and error handling.
  */
 
-const NEXORA_API_URL = process.env.NEXT_PUBLIC_NEXORA_API_URL || 'http://localhost:8888';
+// Empty string = use relative URLs → Next.js proxy handles routing to the droplet
+const NEXORA_API_URL = process.env.NEXT_PUBLIC_NEXORA_API_URL || '/api';
 
 // Types
 export interface Token {
@@ -221,7 +222,7 @@ class NexoraAPIClient {
 
     // Analytics
     async getRecentTrades(limit: number = 100): Promise<{ trades: any[] }> {
-        return this.get<{ trades: any[] }>(`/api/analytics/trades?limit=${limit}`);
+        return this.get<{ trades: any[] }>(`/analytics/trades?limit=${limit}`);
     }
 
     async getRiskAssessment() {
@@ -229,16 +230,16 @@ class NexoraAPIClient {
     }
 
     async getAnalyticsPerformance() {
-        return this.get<any>('/api/analytics/performance');
+        return this.get<any>('/analytics/performance');
     }
 
     // Orders (Standard + Advanced)
     async getUnifiedOrders(): Promise<{ standard: any[], advanced: any[], total_count: number }> {
-        return this.get<{ standard: any[], advanced: any[], total_count: number }>('/api/unified-orders');
+        return this.get<{ standard: any[], advanced: any[], total_count: number }>('/unified-orders');
     }
 
     async getAdvancedOrders(): Promise<{ orders: any[] }> {
-        return this.get<{ orders: any[] }>('/api/orders/advanced');
+        return this.get<{ orders: any[] }>('/orders/advanced');
     }
 
     async submitAdvancedOrder(orderData: {
@@ -248,7 +249,7 @@ class NexoraAPIClient {
         size: number;
         duration: number;
     }) {
-        return this.post<any>('/api/orders/advanced', orderData);
+        return this.post<any>('/orders/advanced', orderData);
     }
 }
 

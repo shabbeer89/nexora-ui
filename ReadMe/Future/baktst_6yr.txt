@@ -1,0 +1,84 @@
+====================================================================================================
+6-YEAR ULTRA AUDIT: FINAL RESULTS (2020-2025)
+====================================================================================================
+
+Strategy                                     Profit %     Trades   Drawdown %
+----------------------------------------------------------------------------------------------------
+Strategy001                                   1523.55         10         1.00
+SimpleTrendFollowing                           853.29          4         1.00
+Strategy005                                    337.61          3         0.00
+Strategy003                                    240.50        192         1.00
+Strategy004                                    200.44        216         1.00
+TrendFollowingMacro                            175.96       2443      1632.00
+Strategy002                                    174.96        194         1.00
+SimpleTrendFollowing                            80.21       2619      1816.00
+SimpleTrendFollowingFiltered                    80.21       2619      1816.00
+AIKNNStrategy                                   59.22          2         0.00
+SimpleTrendFollowingMTF_Aggressive              28.44        243       121.00
+MachineOptimizedV1                              14.44        236       101.00
+SimpleRSIMeanReversionV2                         4.42          2         0.00
+SimpleRSIMeanReversionV2                         4.42          2         0.00
+SimpleRSIMeanReversion                           3.66          4         0.00
+AIKNNStrategyV2                                  0.00          0         0.00
+MTFMeanReversionStrategy                         0.00          0         0.00
+SimpleTrendFollowingMTF                          0.00          0         0.00
+SimpleRSIMeanReversion                           0.00          0         0.00
+SimpleRSIMeanReversionV2                         0.00          0         0.00
+SimpleRSIMeanReversion                           0.00          0         0.00
+SimpleRSIMeanReversionV2                         0.00          0         0.00
+SimpleRSIMeanReversion                           0.00          0         0.00
+SimpleTrendFollowingMTF                          0.00          0         0.00
+BreakoutStrategy                                 0.00          0         0.00
+CryptoMomentumV1                                 0.00          0         0.00
+MTFMeanReversionStrategy                         0.00          0         0.00
+OptimizedRSIV1                                   0.00          0         0.00
+PairsTradingBTCETH_Fixed                         0.00          0         0.00
+RegimeAdaptiveStrategy                           0.00          0         0.00
+SimpleStrategy                                   0.00          0         0.00
+SimpleTrendFollowingMTF                          0.00          0         0.00
+MTFTrendStrategy                                -0.51          1         1.00
+MTFTrendStrategy                                -1.89         17        13.00
+AIKNNStrategy                                  -13.21        185       154.00
+AIKNNStrategyV4                                -13.45          4         3.00
+MTFTrendStrategy                               -14.32          7         5.00
+SimpleRSIMeanReversionV2                       -17.27         58        36.00
+AIKNNStrategyV3                                -18.02         13         8.00
+MTFMeanReversionStrategyV2                     -47.72        243       185.00
+VolatilityExpansion                            -48.41        195       152.00
+Week2FinalV1                                   -57.53       2040       954.00
+SimpleTrendFollowingMTF_Aggressive             -74.80          8         6.00
+AIKNNStrategyV1                               -134.61         57        40.00
+SimpleGrid                                    -151.46        325       139.00
+RegimeAdaptiveV2                              -165.31       1244       630.00
+MTFTrendStrategyV2                            -200.98        685       485.00
+SimpleGridV2                                  -222.60        547       208.00
+RSIExtreme_Fixed                              -262.11       2804      1058.00
+SimpleRSIV1                                   -262.11       2804      1058.00
+GridTradingV1                                 -344.76       1602       726.00
+RSIExtreme                                    -438.12       4088      1765.00
+MTFMeanReversionStrategyV2                    -755.54       3704      3050.00
+SimpleGrid                                    -899.00       6044      2928.00
+TrendFollowingStrategy                        -899.00       3121      2470.00
+ScalpingStrategy                              -899.04       2511      2203.00
+TrendFollowingV2                              -899.12       4147      2903.00
+WeeklyMomentum_Fixed                          -899.14       4274      3730.00
+TrendFollowingV1                              -899.15       3761      3006.00
+WeeklyMomentum                                -899.17       4009      3289.00
+BreakoutMomentumV1                            -899.34       4801      3241.00
+DonchianBreakout_Fixed                        -899.34       4615      3310.00
+MTFTrendStrategyV2                            -899.34       3946      3027.00
+MeanReversionStrategy                         -899.38       3416      3127.00
+SimpleRSIV1_Optimized                         -899.57       2771      1140.00
+RangeStrategy                                 -899.57       6034      2873.00
+RangeStrategy                                 -899.57       6034      2873.00
+DonchianBreakout                              -899.59       4615      3310.00
+VolatilityExpansion_Fixed                     -900.50       4327      3101.00
+MeanReversionV1                               -900.68       5912      2935.00
+SimpleGrid                                   -4194.83       1715       728.00
+
+====================================================================================================
+Total Strategies Audited: 71
+Profitable (>0%): 15
+Break-even (0%): 17
+Unprofitable (<0%): 39
+====================================================================================================

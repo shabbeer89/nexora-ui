@@ -30,7 +30,7 @@ export default function MacroContextDashboard() {
 
     const fetchMacroData = async () => {
         try {
-            const response = await fetch('http://localhost:8888/api/macro/context');
+            const response = await fetch('/api/macro/context');
             if (!response.ok) {
                 if (response.status === 403) {
                     console.warn('Macro data access forbidden - likely needs auth');

@@ -160,6 +160,7 @@ export default function NexoraBotCard({ bot, onClick }: NexoraBotCardProps) {
                     <button
                         onClick={handleToggle}
                         disabled={isTransitioning}
+                        aria-label={bot.status === 'running' ? 'Stop Bot' : 'Start Bot'}
                         className={cn(
                             "w-10 h-10 rounded-xl flex items-center justify-center border transition-all",
                             bot.status === 'running'

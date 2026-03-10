@@ -61,8 +61,8 @@ export default function SystemHealthPage() {
         setError(null);
         try {
             const [connRes, tradeRes] = await Promise.all([
-                fetch('http://localhost:8888/api/system/connections'),
-                fetch('http://localhost:8888/api/system/trade-count')
+                fetch('/api/system/connections'),
+                fetch('/api/system/trade-count')
             ]);
 
             if (!connRes.ok || !tradeRes.ok) {

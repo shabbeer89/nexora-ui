@@ -22,7 +22,7 @@ export function KellySizingTransparency() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await fetch('http://localhost:8888/api/v1/risk/kelly-sizing');
+                const response = await fetch('/api/v1/risk/kelly-sizing');
                 const data = await response.json();
                 setKelly(data);
             } catch (error) {

@@ -1,0 +1,17 @@
+[Unit]
+Description=FreqTrade SimpleTrendFollowing Strategy
+After=network.target nexora-api.service
+Wants=nexora-api.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/Nexora/freqtrade
+ExecStart=/root/Nexora/freqtrade/venv/bin/freqtrade trade --strategy SimpleTrendFollowing --config user_data/config_paper_trend.json --dry-run
+Restart=always
+RestartSec=10
+StandardOutput=append:/root/Nexora/logs/freqtrade.log
+StandardError=append:/root/Nexora/logs/freqtrade.log
+
+[Install]
+WantedBy=multi-user.target

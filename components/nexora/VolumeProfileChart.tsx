@@ -24,7 +24,7 @@ export function VolumeProfileChart() {
         // Fetch volume profile data from API
         const fetchData = async () => {
             try {
-                const response = await fetch('http://localhost:8888/api/v1/analytics/volume-profile');
+                const response = await fetch('/api/v1/analytics/volume-profile');
                 const result = await response.json();
 
                 setData(result.profile || []);

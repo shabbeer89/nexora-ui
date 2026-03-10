@@ -9,7 +9,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const API_URL = process.env.NEXT_PUBLIC_NEXORA_API_URL || 'http://localhost:8888';
+// Use relative /api/ paths — routed through Next.js proxy to the droplet
+const API_BASE = '';
 
 interface LogEntry {
     timestamp: string;
@@ -79,10 +80,16 @@ export default function ScenariosPage() {
 
     const fetchScenarios = useCallback(async () => {
         try {
-            const response = await fetch(`${API_URL}/api/scenarios/available`);
+            const response = await fetch(`${API_BASE}/api/scenarios/available`);
             if (!response.ok) throw new Error('Failed to fetch scenarios');
-            const data: ScenariosResponse = await response.json();
-            setScenarios(data.scenarios);
+            const raw = await response.json();
+            // Handle both {scenarios: [...]} and direct array responses
+            const list = Array.isArray(raw)
+                ? raw
+                : Array.isArray(raw?.scenarios)
+                    ? raw.scenarios
+                    : [];
+            setScenarios(list);
             setLastRefresh(new Date());
             setError(null);
         } catch (err) {
@@ -102,7 +109,7 @@ export default function ScenariosPage() {
         setActionLoading(scenarioId);
         setStartModal(null);
         try {
-            const response = await fetch(`${API_URL}/api/scenarios/${scenarioId}/start`, {
+            const response = await fetch(`${API_BASE}/api/scenarios/${scenarioId}/start`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ capital })
@@ -122,7 +129,7 @@ export default function ScenariosPage() {
     const handleStop = async (scenarioId: string) => {
         setActionLoading(scenarioId);
         try {
-            const response = await fetch(`${API_URL}/api/scenarios/${scenarioId}/stop`, {
+            const response = await fetch(`${API_BASE}/api/scenarios/${scenarioId}/stop`, {
                 method: 'POST'
             });
             if (!response.ok) {
@@ -143,7 +150,7 @@ export default function ScenariosPage() {
         }
         setActionLoading('emergency');
         try {
-            const response = await fetch(`${API_URL}/api/scenarios/emergency`, {
+            const response = await fetch(`${API_BASE}/api/scenarios/emergency`, {
                 method: 'POST'
             });
             if (!response.ok) throw new Error('Failed to trigger emergency');
@@ -228,6 +235,7 @@ export default function ScenariosPage() {
                     <button
                         onClick={fetchScenarios}
                         disabled={loading}
+                        aria-label="Refresh Scenarios"
                         className="p-2 rounded-lg bg-slate-900/40 border border-white/5 hover:border-white/20 transition-all disabled:opacity-50"
                     >
                         <RefreshCw className={cn("w-4 h-4 text-slate-400", loading && "animate-spin")} />
@@ -329,7 +337,7 @@ function StartScenarioModal({ scenario, capital, onCapitalChange, onConfirm, onC
                         <Play className="w-5 h-5 text-emerald-400" />
                         Start Scenario
                     </h3>
-                    <button onClick={onCancel} className="p-1 rounded-lg hover:bg-white/5">
+                    <button onClick={onCancel} aria-label="Close modal" className="p-1 rounded-lg hover:bg-white/5">
                         <X className="w-5 h-5 text-slate-400" />
                     </button>
                 </div>

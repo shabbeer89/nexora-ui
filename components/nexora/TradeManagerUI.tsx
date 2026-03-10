@@ -122,7 +122,7 @@ export default function TradeManagerUI() {
         if (!confirm('Force exit this trade?')) return;
 
         try {
-            await fetch(`http://localhost:8888/api/trades/${tradeId}/exit`, {
+            await fetch(`/api/trades/${tradeId}/exit`, {
                 method: 'POST',
             });
             fetchTrades();
@@ -212,6 +212,7 @@ export default function TradeManagerUI() {
                                     </div>
                                     <button
                                         onClick={() => forceExit(trade.trade_id)}
+                                        aria-label="Force Exit Trade"
                                         className="w-10 h-10 rounded-lg bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 flex items-center justify-center transition-colors"
                                     >
                                         <X className="w-5 h-5 text-red-400" />

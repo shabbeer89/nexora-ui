@@ -1,0 +1,218 @@
+#!/bin/bash
+
+# ============================================================================
+# Nexora Bot System - Full-System Paper Trading Startup (RESTORED)
+# ============================================================================
+
+# Configuration
+BASE_DIR=$(cd "$(dirname "$0")" && pwd)
+LOG_DIR="$BASE_DIR/logs/paper_trading"
+mkdir -p "$LOG_DIR"
+
+# Ports
+NEXORA_API_PORT=8888
+NEXORA_UI_PORT=3000
+HBOT_API_PORT=8000
+FREQBOT_PORT=8080
+FREQAI_PORT=8082
+GATEWAY_PORT=15888
+
+# Colors
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+PURPLE='\033[0;35m'
+NC='\033[0m'
+
+# Detection: Find available Docker Compose command
+DOCKER_COMPOSE_CMD=""
+if docker compose version >/dev/null 2>&1; then
+    DOCKER_COMPOSE_CMD="docker compose"
+elif docker-compose version >/dev/null 2>&1; then
+    DOCKER_COMPOSE_CMD="docker-compose"
+else
+    if command -v docker-compose > /dev/null 2>&1; then
+        DOCKER_COMPOSE_CMD="docker-compose"
+    elif docker help compose > /dev/null 2>&1; then
+        DOCKER_COMPOSE_CMD="docker compose"
+    fi
+fi
+
+echo -e "${PURPLE}==================================================${NC}"
+echo -e "${PURPLE}   🧪 Nexora Paper Trading - FULL ECOSYSTEM      ${NC}"
+echo -e "${PURPLE}==================================================${NC}"
+echo -e "${YELLOW}Base Directory: $BASE_DIR${NC}"
+echo -e "${YELLOW}Log Directory: $LOG_DIR${NC}"
+echo ""
+
+kill_port() {
+    local port=$1
+    local name=$2
+    fuser -k $port/tcp > /dev/null 2>&1
+    local pid=$(lsof -t -i:$port 2>/dev/null)
+    if [ ! -z "$pid" ]; then
+        echo -e "${YELLOW}⚠️  Port $port ($name) still in use by PID $pid. Forcing kill...${NC}"
+        kill -9 $pid 2>/dev/null
+        sleep 1
+    fi
+}
+
+# Function: Check if process already running (prevent duplicates)
+check_already_running() {
+    local process_pattern=$1
+    local service_name=$2
+    if pgrep -f "$process_pattern" > /dev/null; then
+        echo -e "${RED}❌ Error: $service_name is already running!${NC}"
+        echo -e "${YELLOW}   Found: $(pgrep -f "$process_pattern" | wc -l) instance(s)${NC}"
+        ps aux | grep "$process_pattern" | grep -v grep | head -3
+        echo -e "${YELLOW}⚠️  Please stop existing processes first or they will duplicate.${NC}"
+        echo -e "${YELLOW}   Continuing anyway in 3 seconds... (Ctrl+C to abort)${NC}"
+        sleep 3
+    fi
+}
+
+# 1. Cleanup existing processes
+echo -e "${YELLOW}🧹 Purging existing simulation nodes...${NC}"
+kill_port $NEXORA_API_PORT "Nexora API"
+kill_port $HBOT_API_PORT "Hummingbot API"
+kill_port $FREQBOT_PORT "FreqBot"
+kill_port $FREQAI_PORT "FreqAI"
+kill_port $GATEWAY_PORT "Gateway"
+
+pkill -9 -f "python main.py" 2>/dev/null || true
+pkill -9 -f "uvicorn src.api.main" 2>/dev/null || true
+pkill -9 -f "freqtrade trade" 2>/dev/null || true
+sleep 2
+
+# Verify cleanup
+if pgrep -f "freqtrade trade" > /dev/null; then
+    echo -e "${RED}⚠️  Warning: Some freqtrade processes still running (may need sudo)${NC}"
+fi
+
+# 1.1 Stop existing Docker services
+echo -e "${YELLOW}🐳 Resetting infrastructure containers...${NC}"
+if [ ! -z "$DOCKER_COMPOSE_CMD" ]; then
+    cd "$BASE_DIR/hbot/hummingbot-api" && $DOCKER_COMPOSE_CMD down > /dev/null 2>&1 || true
+    cd "$BASE_DIR/nexora-bot" && $DOCKER_COMPOSE_CMD down > /dev/null 2>&1 || true
+else
+    echo -e "${YELLOW}⚠️  Skipping Docker cleanup (compose command not found)${NC}"
+fi
+
+echo -e "${GREEN}✅ Cleanup complete.${NC}\n"
+
+# 1.2 Start Infrastructure
+echo -e "${BLUE}📁 Starting Infrastructure Stack...${NC}"
+if [ ! -z "$DOCKER_COMPOSE_CMD" ]; then
+    cd "$BASE_DIR/hbot/hummingbot-api" || exit 1
+    $DOCKER_COMPOSE_CMD up -d
+    echo -e "${GREEN}✅ Infrastructure services active.${NC}"
+    # Start log collectors for docker containers
+    nohup docker logs -f hummingbot-postgres > "$LOG_DIR/postgres.log" 2>&1 &
+    nohup docker logs -f hummingbot-broker > "$LOG_DIR/mqtt.log" 2>&1 &
+    nohup docker logs -f hummingbot-api > "$LOG_DIR/hummingbot_api.log" 2>&1 &
+    echo -e "${BLUE}📡 Docker log collectors started for Postgres, MQTT, and API.${NC}"
+else
+    echo -e "${RED}❌ Error: docker-compose not found.${NC}"
+    exit 1
+fi
+echo ""
+
+# 2. Start H-Bot Gateway
+echo -e "${BLUE}📦 Starting H-Bot Gateway...${NC}"
+cd "$BASE_DIR/hbot/gateway" || exit 1
+PNPM_BIN="$BASE_DIR/hbot/gateway/node_modules/.bin/pnpm"
+if [ ! -f "$PNPM_BIN" ]; then PNPM_BIN="npx pnpm"; fi
+nohup $PNPM_BIN start --passphrase=a --dev > "$LOG_DIR/gateway.log" 2>&1 &
+echo -e "${GREEN}✅ Gateway active on port $GATEWAY_PORT.${NC}"
+echo ""
+
+# 3. Start Hummingbot
+echo -e "${BLUE}🤖 Starting Hummingbot...${NC}"
+if docker ps -a | grep -q "hummingbot"; then
+    docker stop hummingbot > /dev/null 2>&1
+    docker rm hummingbot > /dev/null 2>&1
+fi
+# Re-run with proper mounts (conf + logs)
+docker run -d --name hummingbot --network host \
+    -v "$BASE_DIR/hbot/hummingbot/conf:/home/hummingbot/conf" \
+    -v "$BASE_DIR/hbot/hummingbot/logs:/home/hummingbot/logs" \
+    hummingbot/hummingbot:latest > /dev/null 2>&1
+    nohup docker logs -f hummingbot > "$LOG_DIR/hummingbot.log" 2>&1 &
+    echo -e "${GREEN}✅ Hummingbot active.${NC}"
+echo ""
+
+# 4. Start Freqbot
+echo -e "${BLUE}📈 Starting Freqbot...${NC}"
+check_already_running "freqtrade trade --strategy RegimeAdaptiveStrategy" "Freqbot"
+cd "$BASE_DIR/freqtrade" || exit 1
+nohup ./venv/bin/freqtrade trade --strategy RegimeAdaptiveStrategy --config user_data/config_paper.json --db-url postgresql://nexora:nexora_password@localhost:5432/nexora_trading > "$LOG_DIR/freqtrade.log" 2>&1 &
+echo -e "${GREEN}✅ Freqbot active on port $FREQBOT_PORT.${NC}"
+echo ""
+
+# 5. Start FreqAI
+echo -e "${BLUE}🧠 Starting FreqAI...${NC}"
+check_already_running "freqtrade trade --config.*freqai" "FreqAI"
+cd "$BASE_DIR/freqtrade" || exit 1
+# Note: api_server port is patched in config to 8082
+nohup ./venv/bin/freqtrade trade --config user_data/config_freqai_training.json --strategy FreqAITrainingStrategy --freqaimodel LightGBMRegressor --dry-run > "$LOG_DIR/freqai.log" 2>&1 &
+echo -e "${GREEN}✅ FreqAI active on port 8082.${NC}"
+echo ""
+
+# 5.5. Start SimpleTrendFollowing (Validated Strategy)
+echo -e "${BLUE}📊 Starting SimpleTrendFollowing (Validated +131% Annual)...${NC}"
+check_already_running "freqtrade trade --strategy SimpleTrendFollowing" "SimpleTrendFollowing"
+cd "$BASE_DIR/freqtrade" || exit 1
+nohup ./venv/bin/freqtrade trade --strategy SimpleTrendFollowing --config user_data/config_paper_trend.json --dry-run > "$LOG_DIR/simple_trend.log" 2>&1 &
+echo -e "${GREEN}✅ SimpleTrendFollowing active on port 8080 (primary).${NC}"
+echo ""
+
+# 6. Start Nexora API
+echo -e "${BLUE}🔌 Starting Nexora API...${NC}"
+check_already_running "uvicorn src.api.main:app" "Nexora API"
+cd "$BASE_DIR/nexora-bot" || exit 1
+export PAPER_TRADING=true
+nohup ./venv/bin/python -m uvicorn src.api.main:app --host 0.0.0.0 --port $NEXORA_API_PORT > "$LOG_DIR/api.log" 2>&1 &
+echo -e "${GREEN}✅ Nexora API active on port $NEXORA_API_PORT.${NC}"
+echo ""
+
+# 7. Start Nexora Orchestrator
+echo -e "${BLUE}🎮 Starting Nexora Orchestrator...${NC}"
+cd "$BASE_DIR/nexora-bot" || exit 1
+nohup ./venv/bin/python main.py > "$LOG_DIR/orchestrator.log" 2>&1 &
+echo -e "${GREEN}✅ Orchestrator active.${NC}"
+echo ""
+
+# 8. Deploy DCA-HBOT
+echo -e "${BLUE}🤖 Deploying DCA-HBOT (Hummingbot DCA Strategy)...${NC}"
+sleep 3  # Wait for Hummingbot API to be fully ready
+curl -s -X POST http://localhost:8000/bot-orchestration/deploy-v2-script \
+  -H "Content-Type: application/json" \
+  -u admin:admin123 \
+  -d '{
+    "instance_name": "DCA-HBOT",
+    "script": "dca_v10.py",
+    "script_config": "DCA-HBOT.json",
+    "credentials_profile": "master_account"
+  }' > "$LOG_DIR/dca-hbot.log" 2>&1
+echo -e "${GREEN}✅ DCA-HBOT deployed.${NC}"
+echo ""
+
+echo -e "${PURPLE}==================================================${NC}"
+echo -e "${PURPLE}   ✨ FULL PAPER TRADING SIMULATION ACTIVE!      ${NC}"
+echo -e "${PURPLE}==================================================${NC}"
+echo -e "${YELLOW}All services started successfully!${NC}"
+echo ""
+echo -e "${BLUE}📊 Trading Strategies:${NC}"
+echo -e "  • SimpleTrendFollowing (Port 8080) - Validated +131% Annual ⭐"
+echo -e "  • RegimeAdaptiveStrategy (SQLite)"
+echo -e "  • FreqAI Training (Port 8082)"
+echo ""
+echo -e "${BLUE}📡 APIs:${NC}"
+echo -e "  • Nexora API:    http://localhost:8888/docs"
+echo -e "  • FreqTrade:     http://localhost:8080 (SimpleTrendFollowing)"
+echo -e "  • Gateway:       http://localhost:15888/docs"
+echo -e "  • Hummingbot:    http://localhost:8000"
+echo ""
+echo -e "${YELLOW}📝 Logs available in: $LOG_DIR${NC}"
+echo ""

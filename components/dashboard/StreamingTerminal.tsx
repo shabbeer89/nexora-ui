@@ -34,7 +34,7 @@ export default function StreamingTerminal({ botId, initialLogs = [], recentlyAct
     const [autoScroll, setAutoScroll] = useState(true);
     const [isCollapsed, setIsCollapsed] = useState(false);
 
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8888/ws';
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://64.227.151.249:8888/ws';
     const { onMessage, send, isConnected } = useWebSocket(wsUrl);
 
     // Subscribe to logs for this specific bot when connected

@@ -25,7 +25,7 @@ export default function AlertsManager() {
 
     const fetchConfig = async () => {
         try {
-            const response = await fetch('http://localhost:8888/api/alerts/config');
+            const response = await fetch('/api/alerts/config');
             const data = await response.json();
             setConfig(data);
         } catch (error) {
@@ -35,7 +35,7 @@ export default function AlertsManager() {
 
     const fetchHistory = async () => {
         try {
-            const response = await fetch('http://localhost:8888/api/alerts/history');
+            const response = await fetch('/api/alerts/history');
             const data = await response.json();
             setHistory(data.alerts || []);
         } catch (error) {
@@ -51,7 +51,7 @@ export default function AlertsManager() {
     const testAlert = async (channel: string) => {
         setTesting(channel);
         try {
-            await fetch(`http://localhost:8888/api/alerts/test/${channel}`, {
+            await fetch(`/api/alerts/test/${channel}`, {
                 method: 'POST',
             });
             alert(`Test ${channel} alert sent!`);
@@ -65,7 +65,7 @@ export default function AlertsManager() {
 
     const toggleChannel = async (channel: string, enabled: boolean) => {
         try {
-            await fetch(`http://localhost:8888/api/alerts/config/${channel}`, {
+            await fetch(`/api/alerts/config/${channel}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ enabled }),

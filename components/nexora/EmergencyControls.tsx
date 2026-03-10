@@ -18,7 +18,7 @@ export default function EmergencyControls() {
                 return;
             }
 
-            const response = await fetch(`http://localhost:8888/api/system/status`, {
+            const response = await fetch(`/api/system/status`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -73,7 +73,7 @@ export default function EmergencyControls() {
             };
 
             const endpoint = endpointMap[action] || action;
-            const response = await fetch(`http://localhost:8888/api/system/${endpoint}`, {
+            const response = await fetch(`/api/system/${endpoint}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

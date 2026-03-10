@@ -34,7 +34,7 @@ export function LiveOrderBook() {
             // Fallback to HTTP polling
             const interval = setInterval(async () => {
                 try {
-                    const response = await fetch('http://localhost:8888/api/v1/orderbook/snapshot');
+                    const response = await fetch('/api/v1/orderbook/snapshot');
                     const data = await response.json();
                     setOrderBook(data);
                 } catch (error) {

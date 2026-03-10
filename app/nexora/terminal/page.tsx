@@ -89,6 +89,25 @@ export default function TerminalPage() {
                         <StreamingTerminal botId="ws" className="h-[400px]" />
                     </div>
                 </div>
+
+                {/* DEX Bot Instances Section (NEW) */}
+                <div>
+                    <div className="flex items-center gap-2 mb-6 px-1 pt-4 border-t border-slate-800">
+                        <Network className="w-4 h-4 text-purple-400" />
+                        <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Live DEX Bot Instances (Hummingbot)</h2>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                        <StreamingTerminal botId="nexora_momentum_lp" className="h-[450px]" />
+                        <StreamingTerminal botId="nexora_range_mm" className="h-[450px]" />
+                        <StreamingTerminal botId="nexora_cross_arb" className="h-[450px]" />
+                        <StreamingTerminal botId="nexora_hedged" className="h-[450px]" />
+                        <StreamingTerminal botId="nexora_funding_arb" className="h-[450px]" />
+                        <StreamingTerminal botId="nexora_token_snipe" className="h-[450px]" />
+                        <StreamingTerminal botId="nexora_flash_recovery" className="h-[450px]" />
+                        <StreamingTerminal botId="nexora_breakout" className="h-[450px]" />
+                        <StreamingTerminal botId="nexora_weekend_mm" className="h-[450px]" />
+                    </div>
+                </div>
             </div>
         </div>
     );

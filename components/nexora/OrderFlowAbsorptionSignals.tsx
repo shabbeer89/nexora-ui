@@ -22,7 +22,7 @@ export function OrderFlowAbsorptionSignals() {
     useEffect(() => {
         const fetchSignals = async () => {
             try {
-                const response = await fetch('http://localhost:8888/api/v1/microstructure/order-flow');
+                const response = await fetch('/api/v1/microstructure/order-flow');
                 const data = await response.json();
                 setSignals(data.signals || []);
             } catch (error) {

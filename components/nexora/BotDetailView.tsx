@@ -138,7 +138,7 @@ export default function BotDetailView({ botId, onBack }: BotDetailViewProps) {
             <div className="bg-[#0B1221] border-b border-white/5 pb-6 -mx-8 px-8 pt-2">
                 <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
                     <div className="flex items-center gap-6">
-                        <button onClick={onBack} className="w-14 h-14 rounded-lg bg-slate-900 border border-slate-800 hover:border-cyan-500/50 flex flex-col items-center justify-center transition-all">
+                        <button onClick={onBack} aria-label="Go back" className="w-14 h-14 rounded-lg bg-slate-900 border border-slate-800 hover:border-cyan-500/50 flex flex-col items-center justify-center transition-all">
                             <ArrowLeft className="w-5 h-5 text-slate-400" />
                         </button>
                         <div>
@@ -170,10 +170,10 @@ export default function BotDetailView({ botId, onBack }: BotDetailViewProps) {
                             </div>
                         </div>
                         <div className="flex gap-2">
-                            <button onClick={() => setShowDeleteModal(true)} disabled={isRunning} className="w-12 h-12 rounded-lg bg-slate-900 border border-slate-800 text-slate-500 hover:text-rose-500 transition-all flex items-center justify-center disabled:opacity-50">
+                            <button onClick={() => setShowDeleteModal(true)} disabled={isRunning} aria-label="Delete Bot" className="w-12 h-12 rounded-lg bg-slate-900 border border-slate-800 text-slate-500 hover:text-rose-500 transition-all flex items-center justify-center disabled:opacity-50">
                                 <Trash2 className="w-5 h-5" />
                             </button>
-                            <button onClick={fetchData} className="w-12 h-12 rounded-lg bg-slate-900 border border-slate-800 text-slate-500 hover:text-white transition-all flex items-center justify-center">
+                            <button onClick={fetchData} aria-label="Refresh Data" className="w-12 h-12 rounded-lg bg-slate-900 border border-slate-800 text-slate-500 hover:text-white transition-all flex items-center justify-center">
                                 <RefreshCw className={cn("w-5 h-5", actionLoading && "animate-spin")} />
                             </button>
                             <button onClick={handleToggle} disabled={actionLoading} className={cn(
