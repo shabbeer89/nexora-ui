@@ -9,10 +9,28 @@ export async function POST(request: Request) {
     console.log('[Login] Using API_URL:', API_URL);
 
     try {
-        // Parse form data (application/x-www-form-urlencoded)
-        const formData = await request.formData();
-        const username = formData.get('username') as string;
-        const password = formData.get('password') as string;
+        let username = '';
+        let password = '';
+
+        // Attempt to parse JSON first, fallback to form data
+        const contentTypeHeader = request.headers.get('content-type') || '';
+        
+        if (contentTypeHeader.includes('application/json')) {
+            const body = await request.json();
+            username = body.username;
+            password = body.password;
+        } else {
+            const formData = await request.formData();
+            username = formData.get('username') as string;
+            password = formData.get('password') as string;
+        }
+
+        if (!username || !password) {
+            return NextResponse.json(
+                { detail: 'Username and password are required' },
+                { status: 400 }
+            );
+        }
 
         // Forward to Nexora Bot API for real JWT token using fetch (native Next.js)
         const response = await fetch(`${API_URL}/auth/login`, {
@@ -23,26 +41,26 @@ export async function POST(request: Request) {
             body: JSON.stringify({ username, password })
         });
 
+        console.log('[Login] Backend response status:', response.status);
+
         const contentType = response.headers.get('content-type');
         let data: any;
 
         if (contentType && contentType.includes('application/json')) {
             data = await response.json();
+            
+            if (!response.ok) {
+                return NextResponse.json(
+                    { detail: data.detail || 'Login failed' },
+                    { status: response.status }
+                );
+            }
         } else {
             const errorText = await response.text();
-            console.error('[Login] Backend returned non-JSON error:', errorText);
+            console.error('[Login] Backend returned non-JSON response:', errorText);
             return NextResponse.json(
                 { detail: `Backend Error (${response.status}): ${errorText.substring(0, 100)}` },
                 { status: response.status || 500 }
-            );
-        }
-
-        console.log('[Login] Backend response status:', response.status);
-
-        if (!response.ok) {
-            return NextResponse.json(
-                { detail: data.detail || 'Login failed' },
-                { status: response.status }
             );
         }
 

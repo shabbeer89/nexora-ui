@@ -230,14 +230,10 @@ export function useAuth(): UseAuthReturn {
 
     const login = useCallback(async (username: string, password: string) => {
         try {
-            // Use /api proxy
-            const formData = new FormData();
-            formData.append('username', username);
-            formData.append('password', password);
-
             const response = await fetch('/api/auth/login', {
                 method: 'POST',
-                body: formData // Use form data for OAuth2 compliance as per LoginForm
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
             });
 
             if (!response.ok) {
