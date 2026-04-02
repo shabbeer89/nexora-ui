@@ -8,7 +8,7 @@ import {
     ChevronRight, Terminal, ArrowUpDown, CandlestickChart, Layers, FileCode,
     Plug, Percent, Container, Archive, TrendingUp, Users, Building2, Shield,
     DollarSign, ClipboardList, Key, Brain, Wallet, GripVertical, Plus, Edit, Trash2,
-    Palette, PanelLeftClose, Check, X
+    Palette, PanelLeftClose, Check, X, Radio
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { clearTokens } from '@/lib/backend-api';
@@ -59,7 +59,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
     AlertTriangle, Activity, LogOut, UserCircle, History, FileText, ChevronDown,
     ChevronRight, Terminal, ArrowUpDown, CandlestickChart, Layers, FileCode,
     Plug, Percent, Container, Archive, TrendingUp, Users, Building2, Shield,
-    DollarSign, ClipboardList, Key, Brain, Wallet
+    DollarSign, ClipboardList, Key, Brain, Wallet, Radio
 };
 
 const PRESET_COLORS = [
@@ -80,6 +80,7 @@ const INITIAL_NAV_GROUPS: NavGroup[] = [
         label: "Mission Control",
         color: "text-cyan-400",
         items: [
+            { href: '/nexora/command-center', label: 'Command Center', icon: 'Radio', color: 'text-cyan-500' },
             { href: '/nexora/overview', label: 'Dashboard', icon: 'LayoutDashboard', color: 'text-cyan-400' },
             { href: '/nexora/cockpit', label: 'Market Overview', icon: 'Activity', color: 'text-emerald-400' },
             { href: '/nexora/scenarios', label: 'Multi-Bot Scenarios', icon: 'Layers', color: 'text-pink-400' },
@@ -160,7 +161,7 @@ export default function Sidebar({ activeTab, setActiveTab, isExpanded, setIsExpa
 
     useEffect(() => {
         setHasMounted(true);
-        const saved = localStorage.getItem('nexora-sidebar-layout-v4');
+        const saved = localStorage.getItem('nexora-sidebar-layout-v5');
         if (saved) {
             try {
                 setNavGroups(JSON.parse(saved));
@@ -172,7 +173,7 @@ export default function Sidebar({ activeTab, setActiveTab, isExpanded, setIsExpa
 
     useEffect(() => {
         if (hasMounted) {
-            localStorage.setItem('nexora-sidebar-layout-v4', JSON.stringify(navGroups));
+            localStorage.setItem('nexora-sidebar-layout-v5', JSON.stringify(navGroups));
         }
     }, [navGroups, hasMounted]);
 

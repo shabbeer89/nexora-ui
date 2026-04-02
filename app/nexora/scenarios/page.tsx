@@ -8,6 +8,7 @@ import {
     Terminal, Wallet
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ScenarioReportModal } from '@/components/scenarios/ScenarioReportModal';
 
 // Use relative /api/ paths — routed through Next.js proxy to the droplet
 const API_BASE = '';
@@ -443,6 +444,7 @@ const timeAgo = (date?: string) => {
 function ScenarioCard({ scenario, isLoading, isExpanded, onToggleExpand, onStart, onStop }: ScenarioCardProps) {
     const isActive = scenario.status === 'running' || scenario.status === 'active';
     const isEmergency = scenario.id === 'emergency';
+    const [showReport, setShowReport] = useState(false);
 
     // Derived metadata
     const stopLoss = (scenario as any).risk_params?.stop_loss || 0.05;
@@ -586,19 +588,30 @@ function ScenarioCard({ scenario, isLoading, isExpanded, onToggleExpand, onStart
                         <Clock className="w-3 h-3" />
                         {isActive ? `Uptime: ${timeAgo(scenario.started_at)}` : 'READY'}
                     </div>
-                    {isActive && scenario.execution_log?.length > 0 && (
-                        <button
-                            onClick={onToggleExpand}
-                            className={cn(
-                                "text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded transition-all flex items-center gap-1",
-                                isExpanded ? "bg-cyan-500 text-white" : "bg-white/5 text-slate-400 hover:bg-white/10"
-                            )}
-                        >
-                            <Terminal className="w-3 h-3" />
-                            Log
-                            {isExpanded ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />}
-                        </button>
-                    )}
+                    <div className="flex items-center gap-2">
+                        {isActive && (
+                            <button
+                                onClick={() => setShowReport(true)}
+                                className="text-[9px] font-black uppercase tracking-widest px-2 py-1 flex items-center gap-1 rounded transition-all bg-white/5 text-slate-400 hover:bg-white/10 hover:text-cyan-400"
+                            >
+                                <Activity className="w-3 h-3" />
+                                Report
+                            </button>
+                        )}
+                        {isActive && scenario.execution_log?.length > 0 && (
+                            <button
+                                onClick={onToggleExpand}
+                                className={cn(
+                                    "text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded transition-all flex items-center gap-1",
+                                    isExpanded ? "bg-cyan-500 text-white" : "bg-white/5 text-slate-400 hover:bg-white/10"
+                                )}
+                            >
+                                <Terminal className="w-3 h-3" />
+                                Log
+                                {isExpanded ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />}
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -629,6 +642,14 @@ function ScenarioCard({ scenario, isLoading, isExpanded, onToggleExpand, onStart
                         ))}
                     </div>
                 </div>
+            )}
+
+            {/* Modal */}
+            {showReport && (
+                <ScenarioReportModal 
+                    scenarioId={scenario.id} 
+                    onClose={() => setShowReport(false)} 
+                />
             )}
         </div>
     );
