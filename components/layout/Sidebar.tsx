@@ -352,7 +352,7 @@ export default function Sidebar({ activeTab, setActiveTab, isExpanded, setIsExpa
                                 animate={{ opacity: 1, x: 0 }}
                                 className="animate-brand"
                             >
-                                <h1 className="text-xl font-black text-white tracking-tighter uppercase leading-none">Nexora</h1>
+                                <h1 className="text-xl font-black text-white tracking-tighter uppercase leading-none">PrimAI</h1>
                                 <p className="text-[9px] font-mono text-cyan-500 uppercase tracking-widest mt-1">Mission Control</p>
                             </motion.div>
                         )}
