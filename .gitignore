@@ -64,8 +64,6 @@ Desktop.ini
 # SSH Keys and Sensitive Files
 *.key
 *.pem
-mysshkey
-mysshkey.pub
 id_rsa
 id_rsa.pub
 *.ppk
